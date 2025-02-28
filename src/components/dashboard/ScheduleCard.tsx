@@ -4,23 +4,13 @@ import { ScheduleSlot } from '@/lib/types';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 
 interface ScheduleCardProps {
   slot: ScheduleSlot;
   onBookSlot?: (slotId: string) => void;
   isBooked?: boolean;
 }
-
-// Let's add formatDate to utils.ts
-const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-};
 
 const ScheduleCard: React.FC<ScheduleCardProps> = ({ 
   slot, 
