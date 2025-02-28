@@ -52,16 +52,7 @@ const ScheduleSlotList: React.FC<ScheduleSlotListProps> = ({
             {slotsByDate[date].map(slot => (
               <ScheduleCard
                 key={slot.id}
-                slot={{
-                  id: slot.id,
-                  departmentId: slot.department_id,
-                  departmentName: slot.department?.name || 'Unknown Department',
-                  date: slot.date,
-                  startTime: slot.start_time,
-                  endTime: slot.end_time,
-                  capacity: slot.capacity,
-                  bookedCount: slot.booked_count
-                }}
+                slot={slot}
                 onBookSlot={isStudent && showBookingOptions ? onBookSlot : undefined}
                 isBooked={userBookedSlotIds.includes(slot.id)}
               />

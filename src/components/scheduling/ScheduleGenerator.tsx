@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/toaster';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { StudentYear, ScheduleSlot } from '@/lib/types';
-import { CalendarIcon, CheckIcon, Cross2Icon, Loader2 } from 'lucide-react';
+import { CalendarIcon, CheckIcon, XIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ScheduleSlotList from './ScheduleSlotList';
 
@@ -189,7 +189,7 @@ const ScheduleGenerator: React.FC<ScheduleGeneratorProps> = ({ onScheduleGenerat
               onClick={handleCancelPreview}
               disabled={isLoading}
             >
-              <Cross2Icon className="mr-2 h-4 w-4" />
+              <XIcon className="mr-2 h-4 w-4" />
               Cancel
             </Button>
             <Button 

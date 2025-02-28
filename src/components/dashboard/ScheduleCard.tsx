@@ -17,7 +17,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   onBookSlot,
   isBooked = false 
 }) => {
-  const availableSpots = slot.capacity - slot.bookedCount;
+  const availableSpots = slot.capacity - slot.booked_count;
   const isFull = availableSpots <= 0;
   
   return (
@@ -27,7 +27,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
         isFull ? "bg-gray-400" : "bg-clinical-500"
       )} />
       <CardContent className="p-5">
-        <h3 className="font-semibold text-gray-900">{slot.departmentName}</h3>
+        <h3 className="font-semibold text-gray-900">{slot.department?.name || 'Unknown Department'}</h3>
         
         <div className="mt-3 space-y-2">
           <div className="flex items-center text-sm text-gray-600">
@@ -37,7 +37,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
           
           <div className="flex items-center text-sm text-gray-600">
             <Clock className="mr-2 h-4 w-4 text-clinical-500" />
-            <span>{slot.startTime} - {slot.endTime}</span>
+            <span>{slot.start_time} - {slot.end_time}</span>
           </div>
         </div>
         
@@ -51,7 +51,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               )}
             </span>
             <span className="text-xs text-gray-500">
-              {slot.bookedCount}/{slot.capacity} booked
+              {slot.booked_count}/{slot.capacity} booked
             </span>
           </div>
           
@@ -61,7 +61,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 "h-1.5 rounded-full",
                 isFull ? "bg-gray-400" : "bg-clinical-500"
               )}
-              style={{ width: `${(slot.bookedCount / slot.capacity) * 100}%` }}
+              style={{ width: `${(slot.booked_count / slot.capacity) * 100}%` }}
             ></div>
           </div>
         </div>
