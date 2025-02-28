@@ -1,5 +1,9 @@
 
 export type UserRole = 'student' | 'tutor' | 'nursing_head' | 'hospital_admin' | 'principal';
+export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+export type AttendanceStatus = 'present' | 'absent' | 'late';
+export type CaseStudyStatus = 'draft' | 'submitted' | 'reviewed' | 'approved';
+export type StudentYear = 'first' | 'second' | 'third' | 'fourth';
 
 export interface User {
   id: string;
@@ -9,93 +13,152 @@ export interface User {
   avatar?: string;
 }
 
+export interface Profile {
+  id: string;
+  name: string | null;
+  email: string;
+  role: UserRole;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademicYear {
+  id: string;
+  student_id: string;
+  year: StudentYear;
+  start_date: string;
+  end_date: string;
+}
+
 export interface Department {
   id: string;
   name: string;
   description: string;
   capacity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentYearRequirement {
+  id: string;
+  department_id: string;
+  year: StudentYear;
+  required_hours: number;
+  created_at: string;
+  updated_at: string;
+  department?: Department;
 }
 
 export interface ScheduleSlot {
   id: string;
-  departmentId: string;
-  departmentName: string;
+  department_id: string;
   date: string;
-  startTime: string;
-  endTime: string;
+  start_time: string;
+  end_time: string;
   capacity: number;
-  bookedCount: number;
+  booked_count: number;
+  created_at: string;
+  updated_at: string;
+  department?: Department;
 }
 
 export interface Booking {
   id: string;
-  slotId: string;
-  studentId: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  createdAt: string;
+  slot_id: string;
+  student_id: string;
+  status: BookingStatus;
+  hours_logged: number;
+  created_at: string;
+  updated_at: string;
+  slot?: ScheduleSlot;
+  student?: Profile;
 }
 
 export interface CaseStudy {
   id: string;
-  studentId: string;
+  student_id: string;
   title: string;
   description: string;
-  department: string;
+  department_id: string;
   date: string;
-  learningOutcomes: string;
-  status: 'draft' | 'submitted' | 'reviewed' | 'approved';
+  learning_outcomes: string;
+  grade: string | null;
+  status: CaseStudyStatus;
+  created_at: string;
+  updated_at: string;
+  department?: Department;
+  student?: Profile;
 }
 
 export interface Attendance {
   id: string;
-  bookingId: string;
-  studentId: string;
+  booking_id: string;
+  student_id: string;
   date: string;
-  status: 'present' | 'absent' | 'late';
-  markedBy: string;
+  status: AttendanceStatus;
+  marked_by: string | null;
+  created_at: string;
+  updated_at: string;
+  booking?: Booking;
+  student?: Profile;
+  marker?: Profile;
 }
 
-// Mock data
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+// Mock data for UI development
 export const mockScheduleSlots: ScheduleSlot[] = [
   {
     id: '1',
-    departmentId: '101',
-    departmentName: 'Emergency Care',
+    department_id: '101',
     date: '2023-10-15',
-    startTime: '08:00',
-    endTime: '14:00',
+    start_time: '08:00',
+    end_time: '14:00',
     capacity: 5,
-    bookedCount: 3
+    booked_count: 3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: '2',
-    departmentId: '102',
-    departmentName: 'Pediatrics',
+    department_id: '102',
     date: '2023-10-16',
-    startTime: '09:00',
-    endTime: '15:00',
+    start_time: '09:00',
+    end_time: '15:00',
     capacity: 4,
-    bookedCount: 2
+    booked_count: 2,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: '3',
-    departmentId: '103',
-    departmentName: 'Surgery',
+    department_id: '103',
     date: '2023-10-17',
-    startTime: '07:30',
-    endTime: '13:30',
+    start_time: '07:30',
+    end_time: '13:30',
     capacity: 3,
-    bookedCount: 3
+    booked_count: 3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: '4',
-    departmentId: '104',
-    departmentName: 'Oncology',
+    department_id: '104',
     date: '2023-10-18',
-    startTime: '10:00',
-    endTime: '16:00',
+    start_time: '10:00',
+    end_time: '16:00',
     capacity: 5,
-    bookedCount: 1
+    booked_count: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ];
 
@@ -104,24 +167,32 @@ export const mockDepartments: Department[] = [
     id: '101',
     name: 'Emergency Care',
     description: 'Acute care and emergency response training',
-    capacity: 10
+    capacity: 10,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: '102',
     name: 'Pediatrics',
     description: 'Child and adolescent healthcare',
-    capacity: 8
+    capacity: 8,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: '103',
     name: 'Surgery',
     description: 'Surgical procedures and perioperative care',
-    capacity: 6
+    capacity: 6,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: '104',
     name: 'Oncology',
     description: 'Cancer treatment and care',
-    capacity: 5
+    capacity: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ];

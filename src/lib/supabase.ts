@@ -1,20 +1,32 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
 
-// Note: This is a placeholder approach. In a real application with Supabase integration, 
-// you would use environment variables and proper configuration.
-// For this demo, we're using a placeholder approach to show the structure.
+const supabaseUrl = 'https://twfqgsicgntlukuciivo.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZnFnc2ljZ250bHVrdWNpaXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MTcyNDIsImV4cCI6MjA1NjI5MzI0Mn0.NUwex35KLh1eqmJJzOdtKkw5yT6zMQsuY2v7g2E688c';
 
-// In a real implementation with Supabase integration, you would use:
-// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
-const demoSupabaseUrl = 'https://placeholder-project.supabase.co';
-const demoSupabaseAnonKey = 'demo-key';
+// Auth functions
+export const signIn = async (email: string, password: string) => {
+  return await supabase.auth.signInWithPassword({ email, password });
+};
 
-export const supabase = createClient(demoSupabaseUrl, demoSupabaseAnonKey);
+export const signUp = async (email: string, password: string, metadata: any) => {
+  return await supabase.auth.signUp({ 
+    email, 
+    password,
+    options: {
+      data: metadata
+    }
+  });
+};
 
-// Mock functions for demo purposes
+export const signOut = async () => {
+  return await supabase.auth.signOut();
+};
+
+// Mock functions for development purposes
 export const mockSignIn = async (email: string, password: string) => {
   // Simulate authentication for demo
   if (email && password) {
