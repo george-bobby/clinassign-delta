@@ -13,7 +13,10 @@ import {
   Book,
   Clock,
   User,
-  Check
+  Check,
+  FileText,
+  BarChart3,
+  Building
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -82,9 +85,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Attendance'
         },
         {
-          to: '/messages',
+          to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Messages'
+          label: 'Chat'
         }
       ],
       tutor: [
@@ -99,15 +102,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Review Cases'
         },
         {
-          to: '/messages',
+          to: '/attendance',
+          icon: <Clock className="h-4 w-4" />,
+          label: 'Attendance'
+        },
+        {
+          to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Messages'
+          label: 'Chat'
         }
       ],
       nursing_head: [
         {
           to: '/departments',
-          icon: <Hospital className="h-4 w-4" />,
+          icon: <Building className="h-4 w-4" />,
           label: 'Departments'
         },
         {
@@ -121,9 +129,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Students'
         },
         {
-          to: '/messages',
+          to: '/attendance',
+          icon: <Clock className="h-4 w-4" />,
+          label: 'Attendance'
+        },
+        {
+          to: '/reports',
+          icon: <FileText className="h-4 w-4" />,
+          label: 'Reports'
+        },
+        {
+          to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Messages'
+          label: 'Chat'
         }
       ],
       hospital_admin: [
@@ -133,8 +151,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Manage Schedule'
         },
         {
-          to: '/mark-attendance',
-          icon: <Check className="h-4 w-4" />,
+          to: '/attendance',
+          icon: <Clock className="h-4 w-4" />,
           label: 'Mark Attendance'
         },
         {
@@ -143,9 +161,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Students'
         },
         {
-          to: '/messages',
+          to: '/departments',
+          icon: <Hospital className="h-4 w-4" />,
+          label: 'Departments'
+        },
+        {
+          to: '/users',
+          icon: <User className="h-4 w-4" />,
+          label: 'Users'
+        },
+        {
+          to: '/reports',
+          icon: <FileText className="h-4 w-4" />,
+          label: 'Reports'
+        },
+        {
+          to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Messages'
+          label: 'Chat'
         }
       ],
       principal: [
@@ -161,13 +194,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         },
         {
           to: '/reports',
-          icon: <Book className="h-4 w-4" />,
+          icon: <BarChart3 className="h-4 w-4" />,
           label: 'Reports'
         },
         {
-          to: '/messages',
+          to: '/attendance',
+          icon: <Clock className="h-4 w-4" />,
+          label: 'Attendance'
+        },
+        {
+          to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Messages'
+          label: 'Chat'
         }
       ]
     };
