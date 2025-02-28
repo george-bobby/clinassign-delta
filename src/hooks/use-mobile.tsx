@@ -23,3 +23,6 @@ export function useMobile(breakpoint: number = 768) {
 
   return isMobile;
 }
+
+// Alias for backward compatibility
+export const useIsMobile = useMobile;
