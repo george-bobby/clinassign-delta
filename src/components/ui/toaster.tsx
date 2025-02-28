@@ -1,5 +1,6 @@
 
-import { useToast as useToastHook } from "@/hooks/use-toast"
+// Import from the radix UI toast primitives directly
+import * as React from "react"
 import {
   Toast,
   ToastClose,
@@ -8,12 +9,15 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import {
+  useToast as useToastPrimitive,
+} from "@/hooks/use-toast-primitive"
 
 // Export the toast function for other components to use
 export const toast = {
   success: (message: string) => {
     // Implementation of toast.success
-    const { toast } = useToastHook();
+    const { toast } = useToastPrimitive();
     toast({
       title: "Success",
       description: message,
@@ -22,7 +26,7 @@ export const toast = {
   },
   error: (message: string) => {
     // Implementation of toast.error
-    const { toast } = useToastHook();
+    const { toast } = useToastPrimitive();
     toast({
       title: "Error",
       description: message,
@@ -31,7 +35,7 @@ export const toast = {
   },
   info: (message: string) => {
     // Implementation of toast.info
-    const { toast } = useToastHook();
+    const { toast } = useToastPrimitive();
     toast({
       title: "Info",
       description: message,
@@ -40,7 +44,7 @@ export const toast = {
   },
   warning: (message: string) => {
     // Implementation of toast.warning
-    const { toast } = useToastHook();
+    const { toast } = useToastPrimitive();
     toast({
       title: "Warning",
       description: message,
@@ -49,13 +53,13 @@ export const toast = {
   },
   // Export the useToast hook's toast function directly
   show: (props: any) => {
-    const { toast } = useToastHook();
+    const { toast } = useToastPrimitive();
     toast(props);
   }
 };
 
 export function Toaster() {
-  const { toasts } = useToastHook()
+  const { toasts } = useToastPrimitive()
 
   return (
     <ToastProvider>
@@ -78,4 +82,4 @@ export function Toaster() {
   )
 }
 
-export { useToastHook as useToast }
+export { useToastPrimitive as useToast }
