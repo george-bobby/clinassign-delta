@@ -1,7 +1,8 @@
 
 project_id = "acmihgikuqzekgewttyf"
 
-[api.attendance]
-disabled = false
-[api.attendance-reports]
-disabled = false
+[functions.attendance]
+verify_jwt = false
+
+[functions.attendance-reports]
+verify_jwt = false
