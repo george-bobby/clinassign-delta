@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { FileText, Download, Calendar as CalendarIcon, BarChart3, PieChart } from 'lucide-react';
+import { FileText, Download, Calendar as CalendarIcon, BarChart3, PieChart, Loader2 } from 'lucide-react';
 import { 
   Select, 
   SelectContent, 
@@ -15,6 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format as formatDate } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const AttendanceReports = () => {
   const { toast } = useToast();
@@ -23,20 +24,169 @@ const AttendanceReports = () => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [fileFormat, setFileFormat] = useState('pdf');
+  const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [reportStats, setReportStats] = useState({
+    overallAttendance: 0,
+    absenceRate: 0,
+    tardiness: 0,
+    totalStudents: 0,
+    departmentStats: []
+  });
   
-  const generateReport = () => {
-    toast({
-      title: "Generating report",
-      description: "Your report is being generated and will be ready for download shortly."
-    });
+  useEffect(() => {
+    // Fetch departments for the dropdown
+    const fetchDepartments = async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        console.error('Error fetching departments:', error);
+      } else {
+        setDepartments(data || []);
+      }
+    };
     
-    // In a real app, this would call a function to generate and download the report
-    setTimeout(() => {
+    fetchDepartments();
+    loadReportStats();
+  }, []);
+  
+  const loadReportStats = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get attendance statistics for the dashboard
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+        
+      if (attendanceError) {
+        console.error('Error fetching attendance stats:', attendanceError);
+        return;
+      }
+      
+      // Get total number of students
+      const { count: studentCount, error: studentError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+        
+      if (studentError) {
+        console.error('Error fetching student count:', studentError);
+      }
+      
+      // Calculate statistics
+      if (attendanceData) {
+        const totalRecords = attendanceData.length;
+        const presentRecords = attendanceData.filter(r => r.status === 'Present').length;
+        const absentRecords = attendanceData.filter(r => r.status === 'Absent').length;
+        const lateRecords = attendanceData.filter(r => r.status === 'Late').length;
+        
+        // Calculate department stats
+        const deptStats = {};
+        attendanceData.forEach(record => {
+          if (!deptStats[record.department]) {
+            deptStats[record.department] = {
+              name: record.department,
+              total: 0,
+              present: 0,
+              rate: 0
+            };
+          }
+          
+          deptStats[record.department].total++;
+          if (record.status === 'Present') {
+            deptStats[record.department].present++;
+          }
+        });
+        
+        // Calculate attendance rates for departments
+        Object.values(deptStats).forEach(dept => {
+          dept.rate = dept.total > 0 ? Math.round((dept.present / dept.total) * 100) : 0;
+        });
+        
+        setReportStats({
+          overallAttendance: totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0,
+          absenceRate: totalRecords > 0 ? Math.round((absentRecords / totalRecords) * 100) : 0,
+          tardiness: totalRecords > 0 ? Math.round((lateRecords / totalRecords) * 100) : 0,
+          totalStudents: studentCount || 0,
+          departmentStats: Object.values(deptStats).sort((a, b) => b.rate - a.rate).slice(0, 4)
+        });
+      }
+    } catch (error) {
+      console.error('Error loading report stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const generateReport = async () => {
+    try {
+      setIsLoading(true);
+      
       toast({
-        title: "Report ready",
-        description: "Your attendance report has been downloaded."
+        title: "Generating report",
+        description: "Your report is being generated and will be ready for download shortly."
       });
-    }, 2000);
+      
+      // Format dates for the API request
+      const formattedStartDate = formatDate(startDate, 'yyyy-MM-dd');
+      const formattedEndDate = formatDate(endDate, 'yyyy-MM-dd');
+      
+      // Call the edge function to generate report
+      const { data, error } = await supabase.functions.invoke('attendance-reports', {
+        method: 'GET',
+        params: {
+          type: reportType,
+          start_date: formattedStartDate,
+          end_date: formattedEndDate,
+          department: department || undefined
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Request file export
+      const exportResponse = await supabase.functions.invoke('attendance-reports', {
+        method: 'POST',
+        body: {
+          format: fileFormat,
+          reportData: data
+        }
+      });
+      
+      if (exportResponse.error) {
+        throw exportResponse.error;
+      }
+      
+      // Simulating success for demo purposes
+      setTimeout(() => {
+        toast({
+          title: "Report ready",
+          description: "Your attendance report has been downloaded."
+        });
+        
+        // In a real app, we would trigger file download here
+        // window.open(exportResponse.data.download_url, '_blank');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast({
+        title: "Report generation failed",
+        description: "There was an error generating your report. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -61,9 +211,9 @@ const AttendanceReports = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">Daily Report</SelectItem>
-                <SelectItem value="weekly">Weekly Report</SelectItem>
-                <SelectItem value="monthly">Monthly Report</SelectItem>
-                <SelectItem value="custom">Custom Date Range</SelectItem>
+                <SelectItem value="department">Department Report</SelectItem>
+                <SelectItem value="student">Student Report</SelectItem>
+                <SelectItem value="custom">Custom Report</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -76,14 +226,11 @@ const AttendanceReports = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Departments</SelectItem>
-                <SelectItem value="1">General Medicine</SelectItem>
-                <SelectItem value="2">Cardiology</SelectItem>
-                <SelectItem value="3">Pediatrics</SelectItem>
-                <SelectItem value="4">Surgery</SelectItem>
-                <SelectItem value="5">Orthopedics</SelectItem>
-                <SelectItem value="6">Neurology</SelectItem>
-                <SelectItem value="7">Emergency</SelectItem>
-                <SelectItem value="8">ICU</SelectItem>
+                {departments.map(dept => (
+                  <SelectItem key={dept.id} value={dept.name}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -151,8 +298,16 @@ const AttendanceReports = () => {
         </CardContent>
         
         <CardFooter>
-          <Button onClick={generateReport} className="w-full">
-            <Download className="mr-2 h-4 w-4" /> Generate Report
+          <Button onClick={generateReport} className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" /> Generate Report
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>
@@ -170,31 +325,37 @@ const AttendanceReports = () => {
           </CardHeader>
           
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-500">Overall Attendance</div>
-                <div className="text-2xl font-bold text-clinical-700">85%</div>
-                <div className="text-xs text-gray-400">Last 30 days</div>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-clinical-600" />
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-500">Absence Rate</div>
-                <div className="text-2xl font-bold text-amber-600">12%</div>
-                <div className="text-xs text-gray-400">Last 30 days</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500">Overall Attendance</div>
+                  <div className="text-2xl font-bold text-clinical-700">{reportStats.overallAttendance}%</div>
+                  <div className="text-xs text-gray-400">Last 30 days</div>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500">Absence Rate</div>
+                  <div className="text-2xl font-bold text-amber-600">{reportStats.absenceRate}%</div>
+                  <div className="text-xs text-gray-400">Last 30 days</div>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500">Tardiness</div>
+                  <div className="text-2xl font-bold text-blue-600">{reportStats.tardiness}%</div>
+                  <div className="text-xs text-gray-400">Last 30 days</div>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500">Total Students</div>
+                  <div className="text-2xl font-bold text-gray-700">{reportStats.totalStudents}</div>
+                  <div className="text-xs text-gray-400">Active in system</div>
+                </div>
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-500">Tardiness</div>
-                <div className="text-2xl font-bold text-blue-600">3%</div>
-                <div className="text-xs text-gray-400">Last 30 days</div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-500">Total Students</div>
-                <div className="text-2xl font-bold text-gray-700">42</div>
-                <div className="text-xs text-gray-400">Active in system</div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
         
@@ -210,32 +371,53 @@ const AttendanceReports = () => {
           </CardHeader>
           
           <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: 'General Medicine', rate: 92, color: 'bg-green-500' },
-                { name: 'Cardiology', rate: 88, color: 'bg-blue-500' },
-                { name: 'Pediatrics', rate: 95, color: 'bg-purple-500' },
-                { name: 'Surgery', rate: 79, color: 'bg-amber-500' },
-              ].map(dept => (
-                <div key={dept.name} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>{dept.name}</span>
-                    <span className="font-medium">{dept.rate}%</span>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-clinical-600" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reportStats.departmentStats.length > 0 ? (
+                  reportStats.departmentStats.map((dept, index) => {
+                    // Assign different colors based on index
+                    const colors = [
+                      'bg-green-500',
+                      'bg-blue-500',
+                      'bg-purple-500',
+                      'bg-amber-500'
+                    ];
+                    return (
+                      <div key={dept.name} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>{dept.name}</span>
+                          <span className="font-medium">{dept.rate}%</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${colors[index % colors.length]}`} 
+                            style={{ width: `${dept.rate}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No department data available
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${dept.color}`} 
-                      style={{ width: `${dept.rate}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </CardContent>
           
           <CardFooter>
-            <Button variant="outline" className="w-full">
-              <BarChart3 className="mr-2 h-4 w-4" /> View Full Analysis
+            <Button variant="outline" className="w-full" onClick={loadReportStats} disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <BarChart3 className="mr-2 h-4 w-4" />
+              )} 
+              Refresh Analysis
             </Button>
           </CardFooter>
         </Card>

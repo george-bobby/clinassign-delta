@@ -1,49 +1,115 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Search, Calendar as CalendarIcon, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-import { Search, Calendar as CalendarIcon, Filter } from 'lucide-react';
-import { format } from 'date-fns';
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from '@/components/ui/popover';
+import { format as formatDate } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from '@/lib/supabase';
 
 interface AttendanceFiltersProps {
   showMarkControls?: boolean;
   onFilterChange?: (filters: any) => void;
 }
 
-const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({ 
+const AttendanceFilters = ({ 
   showMarkControls = false,
-  onFilterChange
-}) => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [department, setDepartment] = useState('');
-  const [student, setStudent] = useState('');
-  const [status, setStatus] = useState('');
+  onFilterChange 
+}: AttendanceFiltersProps) => {
+  const [date, setDate] = useState<Date | null>(null);
+  const [department, setDepartment] = useState<string>('');
+  const [status, setStatus] = useState<string>('');
+  const [studentName, setStudentName] = useState<string>('');
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<string>('');
 
-  const handleFilterChange = () => {
+  useEffect(() => {
+    // Fetch departments from Supabase
+    const fetchDepartments = async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        console.error('Error fetching departments:', error);
+      } else {
+        setDepartments(data || []);
+      }
+    };
+
+    // Fetch students from Supabase
+    const fetchStudents = async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        console.error('Error fetching students:', error);
+      } else {
+        setStudents(data || []);
+      }
+    };
+
+    fetchDepartments();
+    fetchStudents();
+  }, []);
+
+  useEffect(() => {
     if (onFilterChange) {
       onFilterChange({
-        date,
+        date: date ? formatDate(date, 'yyyy-MM-dd') : null,
         department,
-        student,
-        status
+        status,
+        studentId: selectedStudent
       });
     }
+  }, [date, department, status, selectedStudent, onFilterChange]);
+
+  const clearFilters = () => {
+    setDate(null);
+    setDepartment('');
+    setStatus('');
+    setStudentName('');
+    setSelectedStudent('');
   };
 
   return (
-    <Card className="p-4 shadow-sm bg-white border">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+        <h3 className="text-lg font-medium text-gray-900 mb-2 md:mb-0">
+          {showMarkControls ? "Mark Attendance" : "Filter Attendance Records"}
+        </h3>
+        
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clearFilters}
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear Filters
+          </Button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Date Filter */}
         <div className="space-y-2">
           <Label htmlFor="date">Date</Label>
           <Popover>
@@ -53,7 +119,7 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
                 className="w-full justify-start text-left font-normal"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, 'PPP') : <span>Pick a date</span>}
+                {date ? formatDate(date, 'PPP') : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -61,11 +127,13 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
                 mode="single"
                 selected={date}
                 onSelect={setDate}
+                initialFocus
               />
             </PopoverContent>
           </Popover>
         </div>
         
+        {/* Department Filter */}
         <div className="space-y-2">
           <Label htmlFor="department">Department</Label>
           <Select value={department} onValueChange={setDepartment}>
@@ -74,34 +142,16 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Departments</SelectItem>
-              <SelectItem value="1">General Medicine</SelectItem>
-              <SelectItem value="2">Cardiology</SelectItem>
-              <SelectItem value="3">Pediatrics</SelectItem>
-              <SelectItem value="4">Surgery</SelectItem>
-              <SelectItem value="5">Orthopedics</SelectItem>
-              <SelectItem value="6">Neurology</SelectItem>
-              <SelectItem value="7">Emergency</SelectItem>
-              <SelectItem value="8">ICU</SelectItem>
+              {departments.map(dept => (
+                <SelectItem key={dept.id} value={dept.name}>
+                  {dept.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="student">Student</Label>
-          <Select value={student} onValueChange={setStudent}>
-            <SelectTrigger id="student">
-              <SelectValue placeholder="All Students" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Students</SelectItem>
-              <SelectItem value="1">John Student</SelectItem>
-              <SelectItem value="2">Jane Student</SelectItem>
-              <SelectItem value="3">Sam Student</SelectItem>
-              <SelectItem value="4">Mary Student</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
+        {/* Status Filter */}
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
           <Select value={status} onValueChange={setStatus}>
@@ -110,30 +160,60 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Statuses</SelectItem>
-              <SelectItem value="present">Present</SelectItem>
-              <SelectItem value="absent">Absent</SelectItem>
-              <SelectItem value="late">Late</SelectItem>
+              <SelectItem value="Present">Present</SelectItem>
+              <SelectItem value="Absent">Absent</SelectItem>
+              <SelectItem value="Late">Late</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Student Filter */}
+        <div className="space-y-2">
+          <Label htmlFor="student">Student</Label>
+          <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+            <SelectTrigger id="student">
+              <SelectValue placeholder="All Students" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Students</SelectItem>
+              {students.map(student => (
+                <SelectItem key={student.id} value={student.id}>
+                  {student.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
       
-      <div className="flex justify-end mt-4 space-x-2">
-        {showMarkControls && (
-          <Button variant="outline">
-            Mark All Present
-          </Button>
-        )}
-        
-        <Button variant="outline" onClick={handleFilterChange}>
-          <Filter className="h-4 w-4 mr-2" /> Apply Filters
-        </Button>
-        
-        <Button variant="default">
-          <Search className="h-4 w-4 mr-2" /> Search
-        </Button>
-      </div>
-    </Card>
+      {showMarkControls && (
+        <div className="mt-6 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <Label htmlFor="search" className="mb-2 block">Quick Student Search</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  id="search"
+                  type="text"
+                  placeholder="Search student by name..."
+                  className="pl-9"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-end">
+              <Button className="w-full">
+                <Filter className="mr-2 h-4 w-4" />
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

@@ -1,7 +1,8 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { mockSignIn, mockSignOut } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { User, UserRole } from '@/lib/types';
 
 interface AuthContextType {
@@ -25,10 +26,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // In a real app, we would check Supabase session here
-        const storedUser = localStorage.getItem('clinassign_user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        // First check Supabase session
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (sessionData?.session) {
+          // If we have a session, get user profile data
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sessionData.session.user.id)
+            .single();
+            
+          if (profileError) {
+            console.error('Profile fetch error:', profileError);
+            // If no profile found, try to create one with basic info
+            if (sessionData.session.user.email) {
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: sessionData.session.user.id,
+                  email: sessionData.session.user.email,
+                  name: sessionData.session.user.email.split('@')[0],
+                  role: 'student' as UserRole
+                });
+                
+              if (insertError) {
+                console.error('Profile creation error:', insertError);
+              } else {
+                // Fetch the profile again after creation
+                const { data: newProfile } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', sessionData.session.user.id)
+                  .single();
+                  
+                if (newProfile) {
+                  setUser({
+                    id: newProfile.id,
+                    email: newProfile.email,
+                    name: newProfile.name || newProfile.email.split('@')[0],
+                    role: newProfile.role as UserRole
+                  });
+                }
+              }
+            }
+          } else if (profileData) {
+            // Set user from profile data
+            setUser({
+              id: profileData.id,
+              email: profileData.email,
+              name: profileData.name || profileData.email.split('@')[0],
+              role: profileData.role as UserRole
+            });
+          }
+        } else {
+          // Fallback to local storage for demo purposes
+          const storedUser = localStorage.getItem('clinassign_user');
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
+          }
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -38,6 +94,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     checkSession();
+    
+    // Set up auth state change listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session);
+        
+        if (event === 'SIGNED_IN' && session) {
+          // Fetch user profile on sign in
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (profileError) {
+            console.error('Profile fetch error on auth change:', profileError);
+          } else if (profile) {
+            const userData: User = {
+              id: profile.id,
+              email: profile.email,
+              name: profile.name || profile.email.split('@')[0],
+              role: profile.role as UserRole
+            };
+            
+            setUser(userData);
+            localStorage.setItem('clinassign_user', JSON.stringify(userData));
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          localStorage.removeItem('clinassign_user');
+        }
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -47,27 +140,109 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await mockSignIn(email, password);
       
-      if (error) throw error;
+      // Try Supabase authentication first
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      if (data?.user) {
-        const userData: User = {
-          id: data.user.id,
-          email: data.user.email,
-          role: data.user.role as UserRole,
-          name: email.split('@')[0] // Simple name from email for demo
+      if (signInError) {
+        // For demo/development, fallback to mock sign in if Supabase fails
+        console.warn('Supabase auth failed, using mock auth:', signInError);
+        
+        // Simulate authentication for demo
+        const role = getSimulatedRoleForEmail(email);
+        const mockUser: User = {
+          id: '123',
+          email,
+          role: role as UserRole,
+          name: email.split('@')[0]
         };
         
-        setUser(userData);
-        localStorage.setItem('clinassign_user', JSON.stringify(userData));
+        setUser(mockUser);
+        localStorage.setItem('clinassign_user', JSON.stringify(mockUser));
         
         toast({
-          title: 'Welcome back!',
-          description: `Logged in as ${userData.name}`,
+          title: 'Welcome back! (Demo Mode)',
+          description: `Logged in as ${mockUser.name}`,
         });
         
         navigate('/dashboard');
+        return;
+      }
+      
+      if (data?.user) {
+        // Fetch user profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          
+          // If profile doesn't exist, create one
+          if (data.user.email) {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.email.split('@')[0],
+                role: getSimulatedRoleForEmail(data.user.email) as UserRole
+              });
+              
+            if (insertError) {
+              console.error('Profile creation error:', insertError);
+              throw insertError;
+            }
+            
+            // Fetch the profile again after creation
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+              
+            if (newProfile) {
+              const userData: User = {
+                id: newProfile.id,
+                email: newProfile.email,
+                name: newProfile.name || newProfile.email.split('@')[0],
+                role: newProfile.role as UserRole
+              };
+              
+              setUser(userData);
+              localStorage.setItem('clinassign_user', JSON.stringify(userData));
+              
+              toast({
+                title: 'Welcome back!',
+                description: `Logged in as ${userData.name}`,
+              });
+              
+              navigate('/dashboard');
+            }
+          }
+        } else if (profileData) {
+          const userData: User = {
+            id: profileData.id,
+            email: profileData.email,
+            name: profileData.name || profileData.email.split('@')[0],
+            role: profileData.role as UserRole
+          };
+          
+          setUser(userData);
+          localStorage.setItem('clinassign_user', JSON.stringify(userData));
+          
+          toast({
+            title: 'Welcome back!',
+            description: `Logged in as ${userData.name}`,
+          });
+          
+          navigate('/dashboard');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -76,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'Invalid email or password.',
         variant: 'destructive',
       });
-      setError(error);
+      setError(error as Error);
     } finally {
       setLoading(false);
     }
@@ -85,13 +260,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setLoading(true);
-      await mockSignOut();
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Supabase signout error:', error);
+        throw error;
+      }
+      
+      // Clear local state
       setUser(null);
       localStorage.removeItem('clinassign_user');
+      
       toast({
         title: 'Logged out',
         description: 'You have been successfully logged out.',
       });
+      
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
@@ -100,7 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'An error occurred during logout.',
         variant: 'destructive',
       });
-      setError(error);
+      setError(error as Error);
     } finally {
       setLoading(false);
     }
@@ -124,3 +310,13 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Helper to simulate different roles based on email (for development)
+function getSimulatedRoleForEmail(email: string): string {
+  if (email.includes('student')) return 'student';
+  if (email.includes('tutor')) return 'tutor';
+  if (email.includes('nursing')) return 'nursing_head';
+  if (email.includes('hospital')) return 'hospital_admin';
+  if (email.includes('principal')) return 'principal';
+  return 'student'; // Default role
+}

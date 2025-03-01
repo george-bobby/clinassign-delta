@@ -1,9 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
 
-const supabaseUrl = 'https://twfqgsicgntlukuciivo.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZnFnc2ljZ250bHVrdWNpaXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MTcyNDIsImV4cCI6MjA1NjI5MzI0Mn0.NUwex35KLh1eqmJJzOdtKkw5yT6zMQsuY2v7g2E688c';
+const supabaseUrl = 'https://acmihgikuqzekgewttyf.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjbWloZ2lrdXF6ZWtnZXd0dHlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NTA2MjAsImV4cCI6MjA1NjMyNjYyMH0.OXknSZFFSjy7Q3SnjDeYIfgBJ25l8MTkxm39OJE2xoM';
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
@@ -28,7 +27,15 @@ export const signOut = async () => {
 
 // Mock functions for development purposes
 export const mockSignIn = async (email: string, password: string) => {
-  // Simulate authentication for demo
+  // Try Supabase auth first
+  const { data: authData, error: authError } = await signIn(email, password);
+  
+  // If Supabase auth succeeds, return the result
+  if (!authError && authData) {
+    return { data: authData, error: null };
+  }
+  
+  // Otherwise, simulate authentication for demo
   if (email && password) {
     const role = getSimulatedRoleForEmail(email);
     return { 
@@ -40,6 +47,10 @@ export const mockSignIn = async (email: string, password: string) => {
 };
 
 export const mockSignOut = async () => {
+  // Try real signout first
+  const { error } = await signOut();
+  
+  // Return mock response regardless
   return { error: null };
 };
 

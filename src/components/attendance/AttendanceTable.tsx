@@ -1,414 +1,368 @@
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell
+import React, { useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Check, X, Clock, Download, Filter } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-
-// Mocked data - in a real app, this would come from Supabase
-const MOCK_STUDENTS = [
-  { id: '1', name: 'John Student', department: 'General Medicine', departmentId: '1' },
-  { id: '2', name: 'Jane Student', department: 'Cardiology', departmentId: '2' },
-  { id: '3', name: 'Sam Student', department: 'Pediatrics', departmentId: '3' },
-  { id: '4', name: 'Mary Student', department: 'Surgery', departmentId: '4' },
-];
-
-const MOCK_ATTENDANCE_RECORDS = [
-  { id: '1', studentId: '1', studentName: 'John Student', departmentId: '1', department: 'General Medicine', date: new Date('2023-07-01'), status: 'present', markedBy: 'Tom Tutor' },
-  { id: '2', studentId: '1', studentName: 'John Student', departmentId: '1', department: 'General Medicine', date: new Date('2023-07-02'), status: 'absent', markedBy: 'Tom Tutor' },
-  { id: '3', studentId: '2', studentName: 'Jane Student', departmentId: '2', department: 'Cardiology', date: new Date('2023-07-01'), status: 'present', markedBy: 'Nancy Nursing' },
-  { id: '4', studentId: '3', studentName: 'Sam Student', departmentId: '3', department: 'Pediatrics', date: new Date('2023-07-01'), status: 'late', markedBy: 'Tom Tutor' },
-  { id: '5', studentId: '4', studentName: 'Mary Student', departmentId: '4', department: 'Surgery', date: new Date('2023-07-01'), status: 'present', markedBy: 'Nancy Nursing' },
-  { id: '6', studentId: '2', studentName: 'Jane Student', departmentId: '2', department: 'Cardiology', date: new Date('2023-07-02'), status: 'late', markedBy: 'Nancy Nursing' },
-  { id: '7', studentId: '3', studentName: 'Sam Student', departmentId: '3', department: 'Pediatrics', date: new Date('2023-07-02'), status: 'absent', markedBy: 'Tom Tutor' },
-  { id: '8', studentId: '4', studentName: 'Mary Student', departmentId: '4', department: 'Surgery', date: new Date('2023-07-02'), status: 'present', markedBy: 'Nancy Nursing' },
-];
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Edit2, 
+  Trash2, 
+  Check, 
+  X, 
+  UserX,
+  Loader2
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface AttendanceTableProps {
   canMark?: boolean;
   markerView?: boolean;
-  filterDate?: Date;
-  filterDepartment?: string;
-  filterStudent?: string;
-  filterStatus?: string;
+  data?: any[];
+  isLoading?: boolean;
+  onDataChange?: () => void;
 }
 
-const AttendanceTable: React.FC<AttendanceTableProps> = ({ 
+const AttendanceTable = ({ 
   canMark = false, 
   markerView = false,
-  filterDate,
-  filterDepartment,
-  filterStudent,
-  filterStatus
-}) => {
+  data = [],
+  isLoading = false,
+  onDataChange
+}: AttendanceTableProps) => {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [attendanceRecords, setAttendanceRecords] = useState(MOCK_ATTENDANCE_RECORDS);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  
-  // In a real app, this would fetch data from Supabase
-  useEffect(() => {
-    // This would call a Supabase query to get attendance records
-    console.log("Fetching attendance records with filters:", { 
-      filterDate, filterDepartment, filterStudent, filterStatus 
-    });
-    
-    // For demo, we're just filtering the mock data
-    let filtered = [...MOCK_ATTENDANCE_RECORDS];
-    
-    if (filterDate) {
-      filtered = filtered.filter(record => 
-        record.date.toDateString() === filterDate.toDateString()
-      );
-    }
-    
-    if (filterDepartment) {
-      filtered = filtered.filter(record => 
-        record.departmentId === filterDepartment
-      );
-    }
-    
-    if (filterStudent) {
-      filtered = filtered.filter(record => 
-        record.studentId === filterStudent
-      );
-    }
-    
-    if (filterStatus) {
-      filtered = filtered.filter(record => 
-        record.status === filterStatus
-      );
-    }
-    
-    setAttendanceRecords(filtered);
-  }, [filterDate, filterDepartment, filterStudent, filterStatus]);
-  
-  const markAttendance = (studentId: string, status: 'present' | 'absent' | 'late') => {
-    // In a real app, this would be a Supabase mutation
-    const newRecord = {
-      id: Math.random().toString(36).substring(7),
-      studentId,
-      studentName: MOCK_STUDENTS.find(s => s.id === studentId)?.name || '',
-      departmentId: MOCK_STUDENTS.find(s => s.id === studentId)?.departmentId || '',
-      department: MOCK_STUDENTS.find(s => s.id === studentId)?.department || '',
-      date: selectedDate,
-      status,
-      markedBy: 'Current User'
-    };
-    
-    toast({
-      title: "Attendance marked",
-      description: `Marked ${newRecord.studentName} as ${status} for ${format(selectedDate, 'PPP')}`,
-    });
-    
-    // Update our local state
-    setAttendanceRecords(prev => {
-      // Check if there's already a record for this student on this date
-      const existingIndex = prev.findIndex(
-        r => r.studentId === studentId && r.date.toDateString() === selectedDate.toDateString()
-      );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<string>('Present');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, id: string | null }>({
+    open: false,
+    id: null
+  });
+
+  const handleEditStatus = async (id: string) => {
+    try {
+      setIsSubmitting(true);
       
-      if (existingIndex >= 0) {
-        // Update existing record
-        const updated = [...prev];
-        updated[existingIndex] = { ...updated[existingIndex], status };
-        return updated;
-      } else {
-        // Add new record
-        return [...prev, newRecord];
+      const { error } = await supabase
+        .from('attendance_records')
+        .update({ 
+          status: editStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
       }
-    });
-  };
-  
-  const markBulkAttendance = (status: 'present' | 'absent' | 'late') => {
-    if (selectedStudents.length === 0) {
+      
       toast({
-        title: "No students selected",
-        description: "Please select at least one student to mark attendance",
-        variant: "destructive",
+        title: 'Status Updated',
+        description: 'Attendance status has been updated successfully.'
       });
-      return;
+      
+      setEditingId(null);
+      if (onDataChange) onDataChange();
+      
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      toast({
+        title: 'Update Failed',
+        description: 'There was an error updating the attendance status.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteAttendance = async () => {
+    if (!deleteDialog.id) return;
     
-    // In a real app, this would be a batch mutation to Supabase
-    selectedStudents.forEach(studentId => {
-      markAttendance(studentId, status);
-    });
-    
-    // Clear selection after marking
-    setSelectedStudents([]);
-    
-    toast({
-      title: "Bulk attendance marked",
-      description: `Marked ${selectedStudents.length} students as ${status}`,
-    });
+    try {
+      setIsSubmitting(true);
+      
+      const { error } = await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('id', deleteDialog.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: 'Record Deleted',
+        description: 'Attendance record has been deleted successfully.'
+      });
+      
+      setDeleteDialog({ open: false, id: null });
+      if (onDataChange) onDataChange();
+      
+    } catch (error) {
+      console.error('Error deleting attendance:', error);
+      toast({
+        title: 'Delete Failed',
+        description: 'There was an error deleting the attendance record.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
-  const toggleStudentSelection = (studentId: string) => {
-    setSelectedStudents(prev => 
-      prev.includes(studentId) 
-        ? prev.filter(id => id !== studentId) 
-        : [...prev, studentId]
-    );
+  const handleMarkAttendance = async (studentId: string, studentName: string, status: string, department: string) => {
+    try {
+      setIsSubmitting(true);
+      
+      const { error } = await supabase
+        .from('attendance_records')
+        .insert({
+          student_id: studentId,
+          student_name: studentName,
+          date: new Date().toISOString().split('T')[0],
+          status,
+          department,
+          marked_by: user?.id,
+          marker_role: user?.role
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: 'Attendance Marked',
+        description: `${studentName} marked as ${status}.`
+      });
+      
+      if (onDataChange) onDataChange();
+      
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast({
+        title: 'Failed to Mark Attendance',
+        description: 'There was an error recording the attendance.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedStudents(MOCK_STUDENTS.map(s => s.id));
+
+  const StatusBadge = ({ status }: { status: string }) => {
+    if (status === 'Present') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircle className="w-3 h-3 mr-1" /> Present
+        </span>
+      );
+    } else if (status === 'Late') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <Clock className="w-3 h-3 mr-1" /> Late
+        </span>
+      );
     } else {
-      setSelectedStudents([]);
-    }
-  };
-  
-  const exportAttendance = () => {
-    toast({
-      title: "Export initiated",
-      description: "Your attendance data is being prepared for download",
-    });
-    
-    // In a real app, this would generate a CSV or PDF file
-    setTimeout(() => {
-      toast({
-        title: "Export complete",
-        description: "Attendance data has been downloaded",
-      });
-    }, 1500);
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'present':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Present</Badge>;
-      case 'absent':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Absent</Badge>;
-      case 'late':
-        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">Late</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
-    }
-  };
-  
-  const renderTableHeader = () => {
-    if (markerView) {
       return (
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
-              <Checkbox 
-                checked={selectedStudents.length === MOCK_STUDENTS.length} 
-                onCheckedChange={handleSelectAll} 
-              />
-            </TableHead>
-            <TableHead>Student</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <XCircle className="w-3 h-3 mr-1" /> Absent
+        </span>
       );
     }
-    
+  };
+
+  // If loading, show a loading indicator
+  if (isLoading) {
     return (
-      <TableHeader>
-        <TableRow>
-          <TableHead>Student</TableHead>
-          <TableHead>Department</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Marked By</TableHead>
-          {canMark && <TableHead className="text-right">Actions</TableHead>}
-        </TableRow>
-      </TableHeader>
+      <div className="flex justify-center items-center py-10">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
     );
-  };
-  
-  const renderTableContent = () => {
-    if (markerView) {
-      return (
-        <TableBody>
-          {MOCK_STUDENTS.map(student => (
-            <TableRow key={student.id}>
-              <TableCell>
-                <Checkbox 
-                  checked={selectedStudents.includes(student.id)} 
-                  onCheckedChange={() => toggleStudentSelection(student.id)} 
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarFallback className="bg-clinical-100 text-clinical-700">
-                      {student.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>{student.name}</div>
-                </div>
-              </TableCell>
-              <TableCell>{student.department}</TableCell>
-              <TableCell className="text-right space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-green-200 text-green-700 hover:bg-green-50"
-                  onClick={() => markAttendance(student.id, 'present')}
-                >
-                  <Check className="h-4 w-4 mr-1" /> Present
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-amber-200 text-amber-700 hover:bg-amber-50"
-                  onClick={() => markAttendance(student.id, 'late')}
-                >
-                  <Clock className="h-4 w-4 mr-1" /> Late
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-red-200 text-red-700 hover:bg-red-50"
-                  onClick={() => markAttendance(student.id, 'absent')}
-                >
-                  <X className="h-4 w-4 mr-1" /> Absent
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      );
-    }
-    
+  }
+
+  // If no data, show a message
+  if (!data || data.length === 0) {
     return (
-      <TableBody>
-        {attendanceRecords.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={canMark ? 6 : 5} className="text-center py-8 text-gray-500">
-              No attendance records found. Adjust your filters or add new records.
-            </TableCell>
-          </TableRow>
-        ) : (
-          attendanceRecords.map(record => (
-            <TableRow key={record.id}>
-              <TableCell>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarFallback className="bg-clinical-100 text-clinical-700">
-                      {record.studentName.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>{record.studentName}</div>
-                </div>
-              </TableCell>
-              <TableCell>{record.department}</TableCell>
-              <TableCell>{format(record.date, 'PPP')}</TableCell>
-              <TableCell>{getStatusBadge(record.status)}</TableCell>
-              <TableCell>{record.markedBy}</TableCell>
+      <div className="bg-white rounded-lg shadow p-6 text-center">
+        <UserX className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-1">No attendance records found</h3>
+        <p className="text-gray-500 mb-4">
+          {markerView 
+            ? "Start marking attendance by selecting students from the list" 
+            : "No attendance records match your current filters"}
+        </p>
+        {canMark && !markerView && (
+          <Button variant="outline" onClick={() => window.location.href = "#mark"}>
+            Go to Mark Attendance
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <Table>
+          <TableCaption>
+            {markerView 
+              ? "Mark attendance for students" 
+              : "List of attendance records"
+            }
+          </TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Student Name</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Status</TableHead>
               {canMark && (
-                <TableCell className="text-right">
-                  <Select
-                    defaultValue={record.status}
-                    onValueChange={(value) => 
-                      markAttendance(
-                        record.studentId, 
-                        value as 'present' | 'absent' | 'late'
-                      )
-                    }
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Change Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="present">Present</SelectItem>
-                      <SelectItem value="late">Late</SelectItem>
-                      <SelectItem value="absent">Absent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+                <TableHead className="text-right">Actions</TableHead>
               )}
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    );
-  };
-  
-  return (
-    <div className="bg-white rounded-lg border shadow-sm">
-      {markerView && (
-        <div className="p-4 border-b flex justify-between items-center">
-          <div className="text-sm">
-            {selectedStudents.length} of {MOCK_STUDENTS.length} students selected
-          </div>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => markBulkAttendance('present')}
-              disabled={selectedStudents.length === 0}
-              className="border-green-200 text-green-700 hover:bg-green-50"
-            >
-              <Check className="h-4 w-4 mr-1" /> Mark All Present
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => markBulkAttendance('late')}
-              disabled={selectedStudents.length === 0}
-              className="border-amber-200 text-amber-700 hover:bg-amber-50"
-            >
-              <Clock className="h-4 w-4 mr-1" /> Mark All Late
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => markBulkAttendance('absent')}
-              disabled={selectedStudents.length === 0}
-              className="border-red-200 text-red-700 hover:bg-red-50"
-            >
-              <X className="h-4 w-4 mr-1" /> Mark All Absent
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {!markerView && (
-        <div className="p-4 border-b flex justify-between items-center">
-          <div className="text-sm">
-            Showing {attendanceRecords.length} attendance records
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={exportAttendance}
-          >
-            <Download className="h-4 w-4 mr-1" /> Export Data
-          </Button>
-        </div>
-      )}
-      
-      <div className="overflow-x-auto">
-        <Table>
-          {renderTableHeader()}
-          {renderTableContent()}
+          </TableHeader>
+          <TableBody>
+            {data.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell className="font-medium">{record.student_name}</TableCell>
+                <TableCell>
+                  {new Date(record.date).toLocaleDateString()}
+                </TableCell>
+                <TableCell>{record.department}</TableCell>
+                <TableCell>
+                  {editingId === record.id ? (
+                    <Select 
+                      value={editStatus} 
+                      onValueChange={setEditStatus}
+                    >
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Select Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Present">Present</SelectItem>
+                        <SelectItem value="Absent">Absent</SelectItem>
+                        <SelectItem value="Late">Late</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <StatusBadge status={record.status} />
+                  )}
+                </TableCell>
+                {canMark && (
+                  <TableCell className="text-right">
+                    {editingId === record.id ? (
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handleEditStatus(record.id)}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setEditingId(null)}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => {
+                            setEditingId(record.id);
+                            setEditStatus(record.status);
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        {user?.role === 'nursing_head' || user?.role === 'hospital_admin' || user?.role === 'principal' ? (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50" 
+                            onClick={() => setDeleteDialog({ open: true, id: record.id })}
+                            disabled={isSubmitting}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
-    </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Attendance Record</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this attendance record? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, id: null })}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAttendance}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

@@ -1,1 +1,7 @@
+
 project_id = "acmihgikuqzekgewttyf"
+
+[api.attendance]
+disabled = false
+[api.attendance-reports]
+disabled = false
