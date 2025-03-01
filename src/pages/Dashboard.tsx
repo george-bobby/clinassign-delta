@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 w-full">
-      <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       
       <div className="flex">
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />

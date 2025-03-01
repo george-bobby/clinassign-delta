@@ -210,7 +210,7 @@ const ReportsPage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       
       <div className="flex">
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />

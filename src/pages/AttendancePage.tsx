@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
@@ -16,7 +15,6 @@ import { toast } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { AttendanceStatus } from '@/lib/types';
 
-// Mock data for attendance
 const mockAttendanceData = [
   { id: '1', studentId: '101', studentName: 'John Doe', date: '2023-07-15', status: 'present', departmentName: 'General Medicine' },
   { id: '2', studentId: '102', studentName: 'Alice Brown', date: '2023-07-15', status: 'absent', departmentName: 'Surgery' },
@@ -59,7 +57,6 @@ const AttendancePage: React.FC = () => {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>(mockAttendanceData);
   const [sortConfig, setSortConfig] = useState<{ key: keyof AttendanceRecord, direction: 'asc' | 'desc' } | null>(null);
   
-  // Filter attendance data based on search query, date, department, and status
   const filteredData = attendanceData.filter(record => {
     const matchesSearch = record.studentName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           record.departmentName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -71,7 +68,6 @@ const AttendancePage: React.FC = () => {
     return matchesSearch && matchesDate && matchesDepartment && matchesStatus;
   });
   
-  // Sort data if sort config is set
   const sortedData = sortConfig 
     ? [...filteredData].sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -84,7 +80,6 @@ const AttendancePage: React.FC = () => {
       })
     : filteredData;
   
-  // Function to toggle sort
   const requestSort = (key: keyof AttendanceRecord) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -93,7 +88,6 @@ const AttendancePage: React.FC = () => {
     setSortConfig({ key, direction });
   };
   
-  // Function to handle marking attendance
   const handleMarkAttendance = (recordId: string, status: AttendanceStatus) => {
     setAttendanceData(prev => 
       prev.map(record => 
@@ -106,7 +100,6 @@ const AttendancePage: React.FC = () => {
     toast.success(`Attendance marked as ${status}`);
   };
   
-  // Function to handle bulk attendance marking
   const handleBulkAction = (status: AttendanceStatus) => {
     setAttendanceData(prev => 
       prev.map(record => 
@@ -119,7 +112,6 @@ const AttendancePage: React.FC = () => {
     toast.success(`Bulk attendance marked as ${status}`);
   };
   
-  // Function to toggle selection of a record
   const toggleSelection = (recordId: string) => {
     setAttendanceData(prev => 
       prev.map(record => 
@@ -130,7 +122,6 @@ const AttendancePage: React.FC = () => {
     );
   };
   
-  // Function to toggle selection of all records
   const toggleSelectAll = () => {
     const allSelected = sortedData.every(record => record.isSelected);
     
@@ -143,13 +134,10 @@ const AttendancePage: React.FC = () => {
     );
   };
   
-  // Check if any records are selected
   const hasSelected = attendanceData.some(record => record.isSelected);
   
-  // Get the count of selected records
   const selectedCount = attendanceData.filter(record => record.isSelected).length;
   
-  // Function to clear all filters
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedDate(new Date());
@@ -160,7 +148,7 @@ const AttendancePage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       
       <div className="flex">
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
