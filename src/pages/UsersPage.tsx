@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
@@ -28,7 +27,6 @@ import {
 import { toast } from '@/components/ui/toaster';
 import { UserRole } from '@/lib/types';
 
-// Mock user data
 const mockUsers = [
   { 
     id: '1', 
@@ -122,7 +120,6 @@ const mockUsers = [
   },
 ];
 
-// Mock departments
 const mockDepartments = [
   'General Medicine',
   'Surgery',
@@ -149,7 +146,6 @@ interface UserItemProps {
 }
 
 const UserItem: React.FC<UserItemProps> = ({ user, onEdit, onDelete }) => {
-  // Get initials for avatar fallback
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -158,7 +154,6 @@ const UserItem: React.FC<UserItemProps> = ({ user, onEdit, onDelete }) => {
       .toUpperCase();
   };
   
-  // Get role display name
   const getRoleDisplay = (role: UserRole) => {
     switch (role) {
       case 'principal': return 'Principal';
@@ -170,7 +165,6 @@ const UserItem: React.FC<UserItemProps> = ({ user, onEdit, onDelete }) => {
     }
   };
   
-  // Get role color
   const getRoleColor = (role: UserRole) => {
     switch (role) {
       case 'principal': return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
@@ -263,7 +257,6 @@ const UsersPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   
-  // Filter users based on filters
   const filteredUsers = mockUsers.filter(user => {
     const matchesSearch = 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -276,7 +269,6 @@ const UsersPage: React.FC = () => {
     return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
   });
   
-  // Group users by role for tabs
   const usersByRole = {
     all: filteredUsers,
     principal: filteredUsers.filter(u => u.role === 'principal'),
@@ -286,18 +278,15 @@ const UsersPage: React.FC = () => {
     student: filteredUsers.filter(u => u.role === 'student'),
   };
   
-  // Handle edit user
   const handleEditUser = (userId: string) => {
     toast.info(`Edit user functionality will be implemented soon. (User ID: ${userId})`);
   };
   
-  // Handle delete user
   const handleDeleteUser = (userId: string) => {
     setUserToDelete(userId);
     setDeleteDialogOpen(true);
   };
   
-  // Confirm delete user
   const confirmDeleteUser = () => {
     if (userToDelete) {
       toast.success(`User deleted successfully.`);
@@ -306,7 +295,6 @@ const UsersPage: React.FC = () => {
     }
   };
   
-  // Clear filters
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedRole('');
@@ -368,7 +356,7 @@ const UsersPage: React.FC = () => {
                         <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Roles</SelectItem>
+                        <SelectItem value="all_roles">All Roles</SelectItem>
                         <SelectItem value="principal">Principal</SelectItem>
                         <SelectItem value="nursing_head">Nursing Head</SelectItem>
                         <SelectItem value="tutor">Tutor</SelectItem>
@@ -390,7 +378,7 @@ const UsersPage: React.FC = () => {
                         <SelectValue placeholder="All Departments" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Departments</SelectItem>
+                        <SelectItem value="all_departments">All Departments</SelectItem>
                         {mockDepartments.map(dept => (
                           <SelectItem key={dept} value={dept}>
                             {dept}
@@ -412,7 +400,7 @@ const UsersPage: React.FC = () => {
                         <SelectValue placeholder="All Statuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Statuses</SelectItem>
+                        <SelectItem value="all_statuses">All Statuses</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
                       </SelectContent>

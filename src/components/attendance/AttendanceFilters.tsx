@@ -141,7 +141,7 @@ const AttendanceFilters = ({
               <SelectValue placeholder="All Departments" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Departments</SelectItem>
+              <SelectItem value="all_departments">All Departments</SelectItem>
               {departments.map(dept => (
                 <SelectItem key={dept.id} value={dept.name}>
                   {dept.name}
@@ -159,7 +159,7 @@ const AttendanceFilters = ({
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all_statuses">All Statuses</SelectItem>
               <SelectItem value="Present">Present</SelectItem>
               <SelectItem value="Absent">Absent</SelectItem>
               <SelectItem value="Late">Late</SelectItem>
@@ -175,7 +175,7 @@ const AttendanceFilters = ({
               <SelectValue placeholder="All Students" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Students</SelectItem>
+              <SelectItem value="all_students">All Students</SelectItem>
               {students.map(student => (
                 <SelectItem key={student.id} value={student.id}>
                   {student.name}

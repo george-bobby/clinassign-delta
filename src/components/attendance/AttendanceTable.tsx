@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -198,7 +197,6 @@ const AttendanceTable = ({
     }
   };
 
-  // If loading, show a loading indicator
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-10">
@@ -207,7 +205,6 @@ const AttendanceTable = ({
     );
   }
 
-  // If no data, show a message
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6 text-center">
@@ -334,7 +331,6 @@ const AttendanceTable = ({
         </Table>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <DialogContent>
           <DialogHeader>
