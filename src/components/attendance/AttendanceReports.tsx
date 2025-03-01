@@ -13,7 +13,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format as formatDate } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 const AttendanceReports = () => {
@@ -22,7 +22,7 @@ const AttendanceReports = () => {
   const [department, setDepartment] = useState('');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const [format, setFormat] = useState('pdf');
+  const [fileFormat, setFileFormat] = useState('pdf');
   
   const generateReport = () => {
     toast({
@@ -98,7 +98,7 @@ const AttendanceReports = () => {
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP') : <span>Pick a date</span>}
+                    {startDate ? formatDate(startDate, 'PPP') : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -120,7 +120,7 @@ const AttendanceReports = () => {
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'PPP') : <span>Pick a date</span>}
+                    {endDate ? formatDate(endDate, 'PPP') : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -137,7 +137,7 @@ const AttendanceReports = () => {
           
           <div className="space-y-2">
             <Label htmlFor="format">Report Format</Label>
-            <Select value={format} onValueChange={setFormat}>
+            <Select value={fileFormat} onValueChange={setFileFormat}>
               <SelectTrigger id="format">
                 <SelectValue placeholder="Select Format" />
               </SelectTrigger>
