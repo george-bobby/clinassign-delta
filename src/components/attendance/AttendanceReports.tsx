@@ -17,6 +17,23 @@ import { format as formatDate } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 
+// Define types for department stats
+interface DepartmentStat {
+  name: string;
+  total: number;
+  present: number;
+  rate: number;
+}
+
+// Define type for report statistics
+interface ReportStats {
+  overallAttendance: number;
+  absenceRate: number;
+  tardiness: number;
+  totalStudents: number;
+  departmentStats: DepartmentStat[];
+}
+
 const AttendanceReports = () => {
   const { toast } = useToast();
   const [reportType, setReportType] = useState('daily');
@@ -26,7 +43,7 @@ const AttendanceReports = () => {
   const [fileFormat, setFileFormat] = useState('pdf');
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [reportStats, setReportStats] = useState({
+  const [reportStats, setReportStats] = useState<ReportStats>({
     overallAttendance: 0,
     absenceRate: 0,
     tardiness: 0,
@@ -88,7 +105,7 @@ const AttendanceReports = () => {
         const lateRecords = attendanceData.filter(r => r.status === 'Late').length;
         
         // Calculate department stats
-        const deptStats = {};
+        const deptStats: Record<string, DepartmentStat> = {};
         attendanceData.forEach(record => {
           if (!deptStats[record.department]) {
             deptStats[record.department] = {
@@ -141,7 +158,10 @@ const AttendanceReports = () => {
       // Call the edge function to generate report
       const { data, error } = await supabase.functions.invoke('attendance-reports', {
         method: 'GET',
-        params: {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: {
           type: reportType,
           start_date: formattedStartDate,
           end_date: formattedEndDate,
@@ -156,6 +176,9 @@ const AttendanceReports = () => {
       // Request file export
       const exportResponse = await supabase.functions.invoke('attendance-reports', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: {
           format: fileFormat,
           reportData: data

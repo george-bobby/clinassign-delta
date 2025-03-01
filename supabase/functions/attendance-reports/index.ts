@@ -45,17 +45,38 @@ serve(async (req) => {
     // Set Authorization header for Supabase client
     supabase.auth.setSession({ access_token: token, refresh_token: "" });
 
-    // GET /attendance-reports - Generate attendance reports
+    // Parse request body for both GET and POST methods
+    let requestData = {};
+    if (req.method === "GET" || req.method === "POST") {
+      try {
+        requestData = await req.json();
+      } catch (e) {
+        // If parsing fails, use URL parameters for GET
+        if (req.method === "GET") {
+          const url = new URL(req.url);
+          requestData = {
+            type: url.searchParams.get("type") || "daily",
+            start_date: url.searchParams.get("start_date"),
+            end_date: url.searchParams.get("end_date"),
+            department: url.searchParams.get("department"),
+            student_id: url.searchParams.get("student_id")
+          };
+        }
+      }
+    }
+
+    // GET attendance-reports - Generate attendance reports
     if (req.method === "GET") {
-      const url = new URL(req.url);
-      const reportType = url.searchParams.get("type") || "daily";
-      const startDate = url.searchParams.get("start_date");
-      const endDate = url.searchParams.get("end_date");
-      const department = url.searchParams.get("department");
-      const studentId = url.searchParams.get("student_id");
+      const { 
+        type = "daily", 
+        start_date, 
+        end_date, 
+        department, 
+        student_id 
+      } = requestData;
 
       // Validate required parameters
-      if (!startDate) {
+      if (!start_date) {
         return new Response(
           JSON.stringify({ error: "start_date is required" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -69,7 +90,7 @@ serve(async (req) => {
         .eq("id", userData.user.id)
         .single();
 
-      if (profileError || !profileData) {
+      if (profileError) {
         return new Response(
           JSON.stringify({ error: "User profile not found" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
@@ -90,11 +111,11 @@ serve(async (req) => {
       let query = supabase
         .from("attendance_records")
         .select("*")
-        .gte("date", startDate);
+        .gte("date", start_date);
 
       // Apply end date filter if provided
-      if (endDate) {
-        query = query.lte("date", endDate);
+      if (end_date) {
+        query = query.lte("date", end_date);
       }
 
       // Apply department filter if provided
@@ -103,8 +124,8 @@ serve(async (req) => {
       }
 
       // Apply student filter if provided
-      if (studentId) {
-        query = query.eq("student_id", studentId);
+      if (student_id) {
+        query = query.eq("student_id", student_id);
       }
 
       // Execute the query
@@ -119,13 +140,13 @@ serve(async (req) => {
 
       // Process the data based on report type
       let processedData;
-      if (reportType === "daily") {
+      if (type === "daily") {
         // Group by date
         processedData = groupByDate(reportData);
-      } else if (reportType === "department") {
+      } else if (type === "department") {
         // Group by department
         processedData = groupByDepartment(reportData);
-      } else if (reportType === "student") {
+      } else if (type === "student") {
         // Group by student
         processedData = groupByStudent(reportData);
       } else {
@@ -135,19 +156,18 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          report_type: reportType,
-          start_date: startDate,
-          end_date: endDate,
+          report_type: type,
+          start_date,
+          end_date,
           data: processedData
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // POST /attendance-reports/export - Export attendance reports
+    // POST attendance-reports/export - Export attendance reports
     if (req.method === "POST") {
-      const body = await req.json();
-      const { format, reportData } = body;
+      const { format, reportData } = requestData;
 
       // Validate request body
       if (!format || !reportData) {
@@ -164,7 +184,7 @@ serve(async (req) => {
         .eq("id", userData.user.id)
         .single();
 
-      if (profileError || !profileData) {
+      if (profileError) {
         return new Response(
           JSON.stringify({ error: "User profile not found" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
