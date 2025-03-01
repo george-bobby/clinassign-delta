@@ -14,12 +14,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface NavbarProps {
-  toggleSidebar: () => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
+const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white shadow-sm animate-fade-in">
