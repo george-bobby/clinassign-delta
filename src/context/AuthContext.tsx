@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -39,6 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkSession();
   }, []);
+
+  useEffect(() => {
+    console.log("Auth state:", { user, loading, error });
+  }, [user, loading, error]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -72,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'Invalid email or password.',
         variant: 'destructive',
       });
+      setError(error);
     } finally {
       setLoading(false);
     }
@@ -95,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'An error occurred during logout.',
         variant: 'destructive',
       });
+      setError(error);
     } finally {
       setLoading(false);
     }

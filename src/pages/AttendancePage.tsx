@@ -12,7 +12,7 @@ import { Navigate } from 'react-router-dom';
 const AttendancePage = () => {
   const { user, loading, isRole } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const canMarkAttendance = isRole('tutor') || isRole('nursing_head') || isRole('hospital_admin') || isRole('principal');
+  const canMarkAttendance = user && (isRole('tutor') || isRole('nursing_head') || isRole('hospital_admin') || isRole('principal'));
   
   // Show loading state
   if (loading) {
