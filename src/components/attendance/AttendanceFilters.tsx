@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { Search, Calendar as CalendarIcon, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from '@/lib/supabase';
-import { mockDepartments } from '@/lib/types';
 
 interface AttendanceFiltersProps {
   showMarkControls?: boolean;
@@ -31,15 +30,12 @@ const AttendanceFilters = ({
   onFilterChange 
 }: AttendanceFiltersProps) => {
   const [date, setDate] = useState<Date | null>(null);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
   const [department, setDepartment] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [studentName, setStudentName] = useState<string>('');
   const [departments, setDepartments] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     // Fetch departments from Supabase
@@ -51,10 +47,8 @@ const AttendanceFilters = ({
         
       if (error) {
         console.error('Error fetching departments:', error);
-        // Fallback to mock data
-        setDepartments(mockDepartments);
       } else {
-        setDepartments(data || mockDepartments);
+        setDepartments(data || []);
       }
     };
 
@@ -67,14 +61,6 @@ const AttendanceFilters = ({
         
       if (error) {
         console.error('Error fetching students:', error);
-        // Create mock students as fallback
-        setStudents([
-          { id: '101', name: 'John Smith' },
-          { id: '102', name: 'Emily Davis' },
-          { id: '103', name: 'Michael Johnson' },
-          { id: '104', name: 'Sarah Williams' },
-          { id: '105', name: 'David Brown' }
-        ]);
       } else {
         setStudents(data || []);
       }
@@ -88,19 +74,15 @@ const AttendanceFilters = ({
     if (onFilterChange) {
       onFilterChange({
         date: date ? formatDate(date, 'yyyy-MM-dd') : null,
-        startDate: startDate ? formatDate(startDate, 'yyyy-MM-dd') : null,
-        endDate: endDate ? formatDate(endDate, 'yyyy-MM-dd') : null,
         department,
         status,
         studentId: selectedStudent
       });
     }
-  }, [date, startDate, endDate, department, status, selectedStudent, onFilterChange]);
+  }, [date, department, status, selectedStudent, onFilterChange]);
 
   const clearFilters = () => {
     setDate(null);
-    setStartDate(null);
-    setEndDate(null);
     setDepartment('');
     setStatus('');
     setStudentName('');
@@ -118,17 +100,6 @@ const AttendanceFilters = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          >
-            {showAdvancedFilters ? 
-              <ChevronUp className="h-4 w-4 mr-2" /> : 
-              <ChevronDown className="h-4 w-4 mr-2" />
-            }
-            {showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
             onClick={clearFilters}
           >
             <X className="h-4 w-4 mr-2" />
@@ -140,13 +111,12 @@ const AttendanceFilters = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Date Filter */}
         <div className="space-y-2">
-          <Label htmlFor="date">Single Date</Label>
+          <Label htmlFor="date">Date</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className="w-full justify-start text-left font-normal"
-                disabled={!!(startDate || endDate)}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {date ? formatDate(date, 'PPP') : <span>Pick a date</span>}
@@ -171,7 +141,7 @@ const AttendanceFilters = ({
               <SelectValue placeholder="All Departments" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Departments</SelectItem>
+              <SelectItem value="all_departments">All Departments</SelectItem>
               {departments.map(dept => (
                 <SelectItem key={dept.id} value={dept.name}>
                   {dept.name}
@@ -189,10 +159,10 @@ const AttendanceFilters = ({
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
-              <SelectItem value="present">Present</SelectItem>
-              <SelectItem value="absent">Absent</SelectItem>
-              <SelectItem value="late">Late</SelectItem>
+              <SelectItem value="all_statuses">All Statuses</SelectItem>
+              <SelectItem value="Present">Present</SelectItem>
+              <SelectItem value="Absent">Absent</SelectItem>
+              <SelectItem value="Late">Late</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -205,7 +175,7 @@ const AttendanceFilters = ({
               <SelectValue placeholder="All Students" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Students</SelectItem>
+              <SelectItem value="all_students">All Students</SelectItem>
               {students.map(student => (
                 <SelectItem key={student.id} value={student.id}>
                   {student.name}
@@ -215,67 +185,6 @@ const AttendanceFilters = ({
           </Select>
         </div>
       </div>
-      
-      {showAdvancedFilters && (
-        <div className="mt-4 pt-4 border-t">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Date Range Start */}
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Date Range (Start)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="startDate"
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    disabled={!!date}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? formatDate(startDate, 'PPP') : <span>Start date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                    disabled={!!date}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            {/* Date Range End */}
-            <div className="space-y-2">
-              <Label htmlFor="endDate">Date Range (End)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="endDate"
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    disabled={!!date}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? formatDate(endDate, 'PPP') : <span>End date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                    disabled={!!date}
-                    fromDate={startDate || undefined}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        </div>
-      )}
       
       {showMarkControls && (
         <div className="mt-6 pt-4 border-t">

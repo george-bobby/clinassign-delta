@@ -1,4 +1,3 @@
-
 export type UserRole = 'student' | 'tutor' | 'nursing_head' | 'hospital_admin' | 'principal';
 export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 export type AttendanceStatus = 'present' | 'absent' | 'late';
@@ -93,14 +92,11 @@ export interface CaseStudy {
 
 export interface Attendance {
   id: string;
+  booking_id: string;
   student_id: string;
-  student_name: string;
   date: string;
   status: AttendanceStatus;
-  department: string;
   marked_by: string | null;
-  marker_role: string | null;
-  remarks?: string;
   created_at: string;
   updated_at: string;
   booking?: Booking;
