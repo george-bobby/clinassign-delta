@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { Conversation, Message, Profile } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
