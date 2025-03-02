@@ -14,6 +14,10 @@ import DepartmentsPage from "./pages/DepartmentsPage";
 import UsersPage from "./pages/UsersPage";
 import ReportsPage from "./pages/ReportsPage";
 import ChatPage from "./pages/ChatPage";
+import ManageSchedulePage from "./pages/ManageSchedulePage";
+import ReviewCasesPage from "./pages/ReviewCasesPage";
+import StudentsPage from "./pages/StudentsPage";
+import TutorsPage from "./pages/TutorsPage";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +37,10 @@ const App = () => (
             <Route path="/users" element={<UsersPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/manage-schedule" element={<ManageSchedulePage />} />
+            <Route path="/review-cases" element={<ReviewCasesPage />} />
+            <Route path="/students" element={<StudentsPage />} />
+            <Route path="/tutors" element={<TutorsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
