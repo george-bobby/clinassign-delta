@@ -100,8 +100,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, participants }) => 
                 
                 {isCurrentUser && (
                   <Avatar className="h-8 w-8 ml-2 mt-1">
-                    {user?.avatar_url ? (
-                      <AvatarImage src={user.avatar_url} />
+                    {user?.avatar ? (
+                      <AvatarImage src={user.avatar} />
                     ) : null}
                     <AvatarFallback>
                       {getInitials(user?.name || 'User')}

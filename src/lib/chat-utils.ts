@@ -78,7 +78,7 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
       .from("conversation_participants")
       .select(`
         user_id,
-        user:user_id(id, name, email, role, avatar_url)
+        user:profiles!inner(id, name, email, role, avatar_url)
       `)
       .eq("conversation_id", conversationId);
     
@@ -86,8 +86,18 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
       throw error;
     }
     
-    // Extract the user profiles from the response
-    return data?.map(item => item.user) || [];
+    // Extract the user profiles and ensure correct type
+    const profiles: Profile[] = [];
+    
+    if (data && data.length > 0) {
+      data.forEach(item => {
+        if (item.user) {
+          profiles.push(item.user as Profile);
+        }
+      });
+    }
+    
+    return profiles;
   } catch (error) {
     console.error("Error fetching conversation participants:", error);
     return [];
