@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { Conversation, Message, Profile } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
@@ -91,6 +92,7 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
     if (data && data.length > 0) {
       data.forEach(item => {
         if (item.user) {
+          // Extract the user profile from the item and add it to profiles
           profiles.push(item.user as Profile);
         }
       });
