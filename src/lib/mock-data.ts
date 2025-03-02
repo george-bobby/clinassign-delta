@@ -1,4 +1,3 @@
-
 import { CaseStudy, Profile, ScheduleSlot } from "./types";
 
 // Mock student profiles
@@ -270,5 +269,49 @@ export const mockDetailedScheduleSlots: ScheduleSlot[] = [
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-01-01T00:00:00Z"
     }
+  }
+];
+
+// Mock department data
+export const mockDepartments = [
+  {
+    id: "101",
+    name: "Emergency Care",
+    description: "Acute care and emergency response training",
+    capacity: 10,
+    created_at: "2023-01-01T00:00:00Z",
+    updated_at: "2023-01-01T00:00:00Z"
+  },
+  {
+    id: "102",
+    name: "Pediatrics",
+    description: "Child and adolescent healthcare",
+    capacity: 8,
+    created_at: "2023-01-01T00:00:00Z",
+    updated_at: "2023-01-01T00:00:00Z"
+  },
+  {
+    id: "103",
+    name: "Surgery",
+    description: "Surgical procedures and perioperative care",
+    capacity: 6,
+    created_at: "2023-01-01T00:00:00Z",
+    updated_at: "2023-01-01T00:00:00Z"
+  },
+  {
+    id: "104",
+    name: "Oncology",
+    description: "Cancer treatment and care",
+    capacity: 5,
+    created_at: "2023-01-01T00:00:00Z",
+    updated_at: "2023-01-01T00:00:00Z"
+  },
+  {
+    id: "105",
+    name: "Obstetrics",
+    description: "Pregnancy, childbirth, and postpartum care",
+    capacity: 7,
+    created_at: "2023-01-01T00:00:00Z",
+    updated_at: "2023-01-01T00:00:00Z"
   }
 ];

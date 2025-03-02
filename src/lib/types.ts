@@ -1,4 +1,3 @@
-
 export type UserRole = 'student' | 'tutor' | 'nursing_head' | 'hospital_admin' | 'principal';
 export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 export type AttendanceStatus = 'present' | 'absent' | 'late';
@@ -112,6 +111,36 @@ export interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+}
+
+export interface Message {
+  id: string;
+  sender_id: string;
+  conversation_id: string;
+  message_text: string;
+  timestamp: string;
+  attachments?: any;
+  is_read: boolean;
+  sender?: Profile;
+}
+
+export interface Conversation {
+  id: string;
+  name?: string;
+  created_at: string;
+  updated_at: string;
+  last_message?: string;
+  last_message_time?: string;
+  participants?: ConversationParticipant[];
+  messages?: Message[];
+  unread_count?: number;
+}
+
+export interface ConversationParticipant {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  user?: Profile;
 }
 
 // Mock data for UI development
