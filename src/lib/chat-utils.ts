@@ -92,8 +92,17 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
     if (data && data.length > 0) {
       data.forEach(item => {
         if (item.user) {
-          // Extract the user profile from the item and add it to profiles
-          profiles.push(item.user as Profile);
+          // Type assertion to ensure each user object is treated as a Profile
+          const profile: Profile = {
+            id: item.user.id,
+            name: item.user.name,
+            email: item.user.email,
+            role: item.user.role,
+            avatar_url: item.user.avatar_url,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          profiles.push(profile);
         }
       });
     }

@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { CalendarDays } from 'lucide-react';
+import { mockAttendanceData } from '@/lib/mock-attendance-data';
 
 const AttendancePage = () => {
   const { user, loading, isRole } = useAuth();
@@ -18,11 +20,14 @@ const AttendancePage = () => {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [filterParams, setFilterParams] = useState({
     date: null,
+    startDate: null,
+    endDate: null,
     department: '',
     studentId: '',
     status: '',
   });
   const { toast } = useToast();
+  const [isDataFromMock, setIsDataFromMock] = useState(false);
   
   const canMarkAttendance = user && (isRole('tutor') || isRole('nursing_head') || isRole('hospital_admin') || isRole('principal'));
   
@@ -75,6 +80,7 @@ const AttendancePage = () => {
   const fetchAttendanceData = async () => {
     try {
       setIsLoadingData(true);
+      setIsDataFromMock(false);
       
       // Build query based on filters
       let query = supabase.from('attendance_records').select('*');
@@ -82,6 +88,15 @@ const AttendancePage = () => {
       // Apply filters if they exist
       if (filterParams.date) {
         query = query.eq('date', filterParams.date);
+      } else if (filterParams.startDate && filterParams.endDate) {
+        // If date range is specified, use it instead of single date
+        query = query
+          .gte('date', filterParams.startDate)
+          .lte('date', filterParams.endDate);
+      } else if (filterParams.startDate) {
+        query = query.gte('date', filterParams.startDate);
+      } else if (filterParams.endDate) {
+        query = query.lte('date', filterParams.endDate);
       }
       
       if (filterParams.department) {
@@ -103,6 +118,19 @@ const AttendancePage = () => {
           
         if (studentData) {
           query = query.eq('student_id', studentData.id);
+        } else {
+          // If we can't find the student record, try matching by email
+          if (user.email) {
+            const { data: studentsByEmail } = await supabase
+              .from('students')
+              .select('id')
+              .eq('email', user.email)
+              .single();
+              
+            if (studentsByEmail) {
+              query = query.eq('student_id', studentsByEmail.id);
+            }
+          }
         }
       }
       
@@ -119,20 +147,41 @@ const AttendancePage = () => {
       if (error) {
         console.error('Error fetching attendance data:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load attendance data.',
-          variant: 'destructive',
+          title: 'Using Mock Data',
+          description: 'Failed to load attendance data from the database. Using sample data instead.',
         });
+        setAttendanceData(mockAttendanceData);
+        setIsDataFromMock(true);
+      } else if (data && data.length > 0) {
+        setAttendanceData(data);
       } else {
-        setAttendanceData(data || []);
+        // If no data is returned, check if it's due to filtering or no data at all
+        const { data: checkData, error: checkError } = await supabase
+          .from('attendance_records')
+          .select('id')
+          .limit(1);
+          
+        if (checkError || !checkData || checkData.length === 0) {
+          // If there's no data at all, use mock data
+          toast({
+            title: 'Using Mock Data',
+            description: 'No attendance records found in the database. Using sample data instead.',
+          });
+          setAttendanceData(mockAttendanceData);
+          setIsDataFromMock(true);
+        } else {
+          // If there's data but none matches the filters
+          setAttendanceData([]);
+        }
       }
     } catch (error) {
       console.error('Attendance fetch error:', error);
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred when loading attendance data.',
-        variant: 'destructive',
+        title: 'Using Mock Data',
+        description: 'An unexpected error occurred when loading attendance data. Using sample data instead.',
       });
+      setAttendanceData(mockAttendanceData);
+      setIsDataFromMock(true);
     } finally {
       setIsLoadingData(false);
     }
@@ -175,6 +224,18 @@ const AttendancePage = () => {
                   ? "Track, mark, and manage student attendance records" 
                   : "View your attendance records"}
               </p>
+              
+              {isDataFromMock && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-start">
+                  <CalendarDays className="text-blue-500 mt-0.5 mr-2 h-5 w-5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-blue-800 font-medium">Using sample data</p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      We're currently displaying sample attendance data. Connect to Supabase to see real data.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
             
             <Tabs defaultValue="records" className="w-full">

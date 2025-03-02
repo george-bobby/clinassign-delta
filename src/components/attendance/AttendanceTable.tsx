@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Table,
@@ -18,7 +19,8 @@ import {
   Check, 
   X, 
   UserX,
-  Loader2
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -37,8 +39,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { mockAttendanceData } from '@/lib/mock-attendance-data';
 
 interface AttendanceTableProps {
   canMark?: boolean;
@@ -59,11 +64,19 @@ const AttendanceTable = ({
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState<string>('Present');
+  const [editRemarks, setEditRemarks] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, id: string | null }>({
     open: false,
     id: null
   });
+  const [viewRemarksDialog, setViewRemarksDialog] = useState<{ open: boolean, remarks: string | null }>({
+    open: false,
+    remarks: null
+  });
+
+  // Use mock data if no real data is provided
+  const displayData = data && data.length > 0 ? data : mockAttendanceData;
 
   const handleEditStatus = async (id: string) => {
     try {
@@ -72,8 +85,10 @@ const AttendanceTable = ({
       const { error } = await supabase
         .from('attendance_records')
         .update({ 
-          status: editStatus,
-          updated_at: new Date().toISOString()
+          status: editStatus.toLowerCase(),
+          remarks: editRemarks,
+          updated_at: new Date().toISOString(),
+          marked_by: user?.id
         })
         .eq('id', id);
         
@@ -136,7 +151,7 @@ const AttendanceTable = ({
     }
   };
   
-  const handleMarkAttendance = async (studentId: string, studentName: string, status: string, department: string) => {
+  const handleMarkAttendance = async (studentId: string, studentName: string, status: string, department: string, remarks: string = '') => {
     try {
       setIsSubmitting(true);
       
@@ -146,8 +161,9 @@ const AttendanceTable = ({
           student_id: studentId,
           student_name: studentName,
           date: new Date().toISOString().split('T')[0],
-          status,
+          status: status.toLowerCase(),
           department,
+          remarks,
           marked_by: user?.id,
           marker_role: user?.role
         });
@@ -176,13 +192,15 @@ const AttendanceTable = ({
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
-    if (status === 'Present') {
+    const statusLower = status.toLowerCase();
+    
+    if (statusLower === 'present') {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" /> Present
         </span>
       );
-    } else if (status === 'Late') {
+    } else if (statusLower === 'late') {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
           <Clock className="w-3 h-3 mr-1" /> Late
@@ -205,7 +223,7 @@ const AttendanceTable = ({
     );
   }
 
-  if (!data || data.length === 0) {
+  if (!displayData || displayData.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6 text-center">
         <UserX className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -240,13 +258,14 @@ const AttendanceTable = ({
               <TableHead>Date</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Remarks</TableHead>
               {canMark && (
                 <TableHead className="text-right">Actions</TableHead>
               )}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((record) => (
+            {displayData.map((record) => (
               <TableRow key={record.id}>
                 <TableCell className="font-medium">{record.student_name}</TableCell>
                 <TableCell>
@@ -270,6 +289,34 @@ const AttendanceTable = ({
                     </Select>
                   ) : (
                     <StatusBadge status={record.status} />
+                  )}
+                </TableCell>
+                <TableCell>
+                  {editingId === record.id ? (
+                    <Textarea 
+                      value={editRemarks} 
+                      onChange={(e) => setEditRemarks(e.target.value)}
+                      placeholder="Add remarks..."
+                      className="min-h-[80px]"
+                    />
+                  ) : (
+                    <div className="flex items-center">
+                      {record.remarks ? (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setViewRemarksDialog({
+                            open: true,
+                            remarks: record.remarks
+                          })}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No remarks</span>
+                      )}
+                    </div>
                   )}
                 </TableCell>
                 {canMark && (
@@ -304,7 +351,8 @@ const AttendanceTable = ({
                           variant="ghost" 
                           onClick={() => {
                             setEditingId(record.id);
-                            setEditStatus(record.status);
+                            setEditStatus(record.status.charAt(0).toUpperCase() + record.status.slice(1));
+                            setEditRemarks(record.remarks || '');
                           }}
                           disabled={isSubmitting}
                         >
@@ -354,6 +402,22 @@ const AttendanceTable = ({
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={viewRemarksDialog.open} onOpenChange={(open) => setViewRemarksDialog({ ...viewRemarksDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Attendance Remarks</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 p-4 bg-gray-50 rounded-md">
+            <p>{viewRemarksDialog.remarks || 'No remarks available.'}</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setViewRemarksDialog({ open: false, remarks: null })}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
