@@ -52,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 
               if (insertError) {
                 console.error('Profile creation error:', insertError);
-                setLoading(false); // Set loading to false even if there's an error
               } else {
                 // Fetch the profile again after creation
                 const { data: newProfile } = await supabase
@@ -69,10 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: newProfile.role as UserRole
                   });
                 }
-                setLoading(false);
               }
-            } else {
-              setLoading(false);
             }
           } else if (profileData) {
             // Set user from profile data
@@ -82,9 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name: profileData.name || profileData.email.split('@')[0],
               role: profileData.role as UserRole
             });
-            setLoading(false);
-          } else {
-            setLoading(false);
           }
         } else {
           // Fallback to local storage for demo purposes
@@ -92,11 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (storedUser) {
             setUser(JSON.parse(storedUser));
           }
-          setLoading(false);
         }
       } catch (error) {
         console.error('Session check error:', error);
-        setLoading(false); // Ensure loading is set to false in case of error
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -117,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
           if (profileError) {
             console.error('Profile fetch error on auth change:', profileError);
-            setLoading(false);
           } else if (profile) {
             const userData: User = {
               id: profile.id,
@@ -129,11 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(userData);
             localStorage.setItem('clinassign_user', JSON.stringify(userData));
           }
-          setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           localStorage.removeItem('clinassign_user');
-          setLoading(false);
         }
       }
     );
@@ -150,7 +140,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      setError(null);
       
       // Try Supabase authentication first
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -159,12 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (signInError) {
+        // For demo/development, fallback to mock sign in if Supabase fails
         console.warn('Supabase auth failed, using mock auth:', signInError);
-        
-        // Check if email and password are provided before using mock auth
-        if (!email || !password) {
-          throw new Error('Email and password are required');
-        }
         
         // Simulate authentication for demo
         const role = getSimulatedRoleForEmail(email);
@@ -184,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         navigate('/dashboard');
-        setLoading(false);
         return;
       }
       
@@ -239,8 +223,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
               
               navigate('/dashboard');
-              setLoading(false);
-              return;
             }
           }
         } else if (profileData) {
@@ -260,23 +242,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           navigate('/dashboard');
-          setLoading(false);
-          return;
         }
       }
-      
-      // If we reach here, something went wrong but we didn't throw an error
-      setLoading(false);
-      throw new Error('Failed to log in');
-      
     } catch (error) {
       console.error('Login error:', error);
       toast({
         title: 'Login Failed',
-        description: error instanceof Error ? error.message : 'Invalid email or password.',
+        description: 'Invalid email or password.',
         variant: 'destructive',
       });
       setError(error as Error);
+    } finally {
       setLoading(false);
     }
   };

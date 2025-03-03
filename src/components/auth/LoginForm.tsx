@@ -6,15 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  const { signIn, loading } = useAuth();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,18 +23,12 @@ const LoginForm: React.FC = () => {
     }
     
     try {
-      setIsSubmitting(true);
       await signIn(email, password);
     } catch (err: any) {
-      console.error('Login error in form:', err);
+      console.error('Login error:', err);
       setError(err.message || 'Failed to sign in');
-    } finally {
-      setIsSubmitting(false);
     }
   };
-  
-  // Combined loading state
-  const loading = isSubmitting || authLoading;
   
   // Demo user suggestions
   const demoUsers = [
