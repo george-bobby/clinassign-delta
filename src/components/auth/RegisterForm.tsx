@@ -68,6 +68,8 @@ const RegisterForm: React.FC = () => {
       if (signUpError) throw signUpError;
       
       if (data && data.user) {
+        console.log("User created successfully:", data.user);
+        
         // Create a profile record in the profiles table
         const { error: profileError } = await supabase
           .from('profiles')
@@ -78,7 +80,12 @@ const RegisterForm: React.FC = () => {
             role: role
           });
         
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw profileError;
+        }
+        
+        console.log("Profile created successfully");
         
         // Show success message
         toast({
@@ -88,6 +95,8 @@ const RegisterForm: React.FC = () => {
         
         // Redirect to login page
         navigate('/');
+      } else {
+        throw new Error('Failed to create user account');
       }
     } catch (err: any) {
       console.error('Registration error:', err);
