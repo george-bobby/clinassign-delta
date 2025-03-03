@@ -85,13 +85,12 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
       throw error;
     }
     
-    // Extract the user profiles and ensure correct type
+    // Extract the user profiles from the response
     const profiles: Profile[] = [];
     
     if (data && data.length > 0) {
       data.forEach(item => {
         if (item.user) {
-          // Extract the user profile from the item and add it to profiles
           profiles.push({
             id: item.user.id,
             name: item.user.name,
@@ -100,7 +99,7 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
             avatar_url: item.user.avatar_url,
             created_at: '',  // Default value as this might not be in the query
             updated_at: ''   // Default value as this might not be in the query
-          } as Profile);
+          });
         }
       });
     }
