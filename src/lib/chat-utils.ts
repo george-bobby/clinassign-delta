@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { Conversation, Message, Profile } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
@@ -90,13 +91,16 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
     
     if (data && data.length > 0) {
       data.forEach(item => {
+        // Check if item.user exists and is properly structured
         if (item.user) {
+          // Need to access the specific user object properties
+          const user = item.user;
           profiles.push({
-            id: item.user.id,
-            name: item.user.name,
-            email: item.user.email,
-            role: item.user.role,
-            avatar_url: item.user.avatar_url,
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            avatar_url: user.avatar_url,
             created_at: '',  // Default value as this might not be in the query
             updated_at: ''   // Default value as this might not be in the query
           });
