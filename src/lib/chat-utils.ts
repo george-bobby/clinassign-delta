@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { Conversation, Message, Profile } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
@@ -93,7 +92,15 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
       data.forEach(item => {
         if (item.user) {
           // Extract the user profile from the item and add it to profiles
-          profiles.push(item.user as Profile);
+          profiles.push({
+            id: item.user.id,
+            name: item.user.name,
+            email: item.user.email,
+            role: item.user.role,
+            avatar_url: item.user.avatar_url,
+            created_at: '',  // Default value as this might not be in the query
+            updated_at: ''   // Default value as this might not be in the query
+          } as Profile);
         }
       });
     }

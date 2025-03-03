@@ -17,6 +17,7 @@ export type Database = {
           id: string
           marked_by: string | null
           marker_role: Database["public"]["Enums"]["user_role"]
+          remarks: string | null
           status: Database["public"]["Enums"]["attendance_status"]
           student_id: string
           student_name: string
@@ -29,6 +30,7 @@ export type Database = {
           id?: string
           marked_by?: string | null
           marker_role: Database["public"]["Enums"]["user_role"]
+          remarks?: string | null
           status?: Database["public"]["Enums"]["attendance_status"]
           student_id: string
           student_name: string
@@ -41,6 +43,7 @@ export type Database = {
           id?: string
           marked_by?: string | null
           marker_role?: Database["public"]["Enums"]["user_role"]
+          remarks?: string | null
           status?: Database["public"]["Enums"]["attendance_status"]
           student_id?: string
           student_name?: string
