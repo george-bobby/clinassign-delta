@@ -1,118 +1,254 @@
 
-import { supabase } from "@/lib/supabase";
 import { Conversation, Message, Profile } from "@/lib/types";
-import { useAuth } from "@/context/AuthContext";
+
+// Mock data for conversations
+const mockConversations: Conversation[] = [
+  {
+    id: "1",
+    name: "Hospital Admin Chat",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    last_message: "Let me know if you have any questions about the rotation schedule.",
+    last_message_time: new Date().toISOString(),
+    unread_count: 2,
+    participants: [
+      {
+        id: "p1",
+        conversation_id: "1",
+        user_id: "123",
+        user: {
+          id: "123",
+          name: "Admin User",
+          email: "admin@example.com",
+          role: "hospital_admin",
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      },
+      {
+        id: "p2",
+        conversation_id: "1",
+        user_id: "456",
+        user: {
+          id: "456",
+          name: "Student User",
+          email: "student@example.com",
+          role: "student",
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      }
+    ]
+  },
+  {
+    id: "2",
+    name: "Tutor Support",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    last_message: "Your case study has been reviewed and approved.",
+    last_message_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    unread_count: 0,
+    participants: [
+      {
+        id: "p3",
+        conversation_id: "2",
+        user_id: "456",
+        user: {
+          id: "456",
+          name: "Student User",
+          email: "student@example.com",
+          role: "student",
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      },
+      {
+        id: "p4",
+        conversation_id: "2",
+        user_id: "789",
+        user: {
+          id: "789",
+          name: "Tutor User",
+          email: "tutor@example.com",
+          role: "tutor",
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      }
+    ]
+  }
+];
+
+// Mock messages data
+const mockMessages: { [key: string]: Message[] } = {
+  "1": [
+    {
+      id: "m1",
+      conversation_id: "1",
+      sender_id: "123",
+      message_text: "Hello! I've updated the rotation schedule for next month.",
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      is_read: true,
+      sender: {
+        id: "123",
+        name: "Admin User",
+        email: "admin@example.com",
+        role: "hospital_admin",
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    },
+    {
+      id: "m2",
+      conversation_id: "1",
+      sender_id: "456",
+      message_text: "Thank you for the update. I'll check it out.",
+      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+      is_read: true,
+      sender: {
+        id: "456",
+        name: "Student User",
+        email: "student@example.com",
+        role: "student",
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    },
+    {
+      id: "m3",
+      conversation_id: "1",
+      sender_id: "123",
+      message_text: "Let me know if you have any questions about the rotation schedule.",
+      timestamp: new Date().toISOString(),
+      is_read: false,
+      sender: {
+        id: "123",
+        name: "Admin User",
+        email: "admin@example.com",
+        role: "hospital_admin",
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    }
+  ],
+  "2": [
+    {
+      id: "m4",
+      conversation_id: "2",
+      sender_id: "789",
+      message_text: "I've reviewed your case study submission.",
+      timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+      is_read: true,
+      sender: {
+        id: "789",
+        name: "Tutor User",
+        email: "tutor@example.com",
+        role: "tutor",
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    },
+    {
+      id: "m5",
+      conversation_id: "2",
+      sender_id: "789",
+      message_text: "Your case study has been reviewed and approved.",
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      is_read: true,
+      sender: {
+        id: "789",
+        name: "Tutor User",
+        email: "tutor@example.com",
+        role: "tutor",
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    }
+  ]
+};
+
+// Mock user profiles
+const mockProfiles: Profile[] = [
+  {
+    id: "123",
+    name: "Admin User",
+    email: "admin@example.com",
+    role: "hospital_admin",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "456",
+    name: "Student User",
+    email: "student@example.com",
+    role: "student",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "789",
+    name: "Tutor User",
+    email: "tutor@example.com",
+    role: "tutor",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
 
 // Fetch conversations for the current user
 export const fetchUserConversations = async (): Promise<Conversation[]> => {
-  try {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Get conversations that the user is a participant in
-    const { data: participantData, error: participantError } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", user.id);
-    
-    if (participantError) {
-      throw participantError;
-    }
-    
-    if (!participantData || participantData.length === 0) {
-      return [];
-    }
-    
-    const conversationIds = participantData.map(p => p.conversation_id);
-    
-    // Get conversation details
-    const { data: conversations, error: conversationsError } = await supabase
-      .from("conversations")
-      .select("*")
-      .in("id", conversationIds)
-      .order("updated_at", { ascending: false });
-    
-    if (conversationsError) {
-      throw conversationsError;
-    }
-    
-    return conversations || [];
-  } catch (error) {
-    console.error("Error fetching conversations:", error);
-    return [];
-  }
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return mockConversations;
 };
 
 // Fetch messages for a specific conversation
 export const fetchConversationMessages = async (conversationId: string): Promise<Message[]> => {
-  try {
-    // Get messages for this conversation
-    const { data: messages, error: messagesError } = await supabase
-      .from("messages")
-      .select(`
-        *,
-        sender:sender_id(id, name, email, role, avatar_url)
-      `)
-      .eq("conversation_id", conversationId)
-      .order("timestamp", { ascending: true });
-    
-    if (messagesError) {
-      throw messagesError;
-    }
-    
-    return messages || [];
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    return [];
-  }
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return mockMessages[conversationId] || [];
 };
 
 // Fetch participants for a specific conversation
 export const fetchConversationParticipants = async (conversationId: string): Promise<Profile[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("conversation_participants")
-      .select(`
-        user_id,
-        user:profiles!inner(id, name, email, role, avatar_url)
-      `)
-      .eq("conversation_id", conversationId);
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Extract the user profiles from the response
-    const profiles: Profile[] = [];
-    
-    if (data && data.length > 0) {
-      data.forEach(item => {
-        // Check if item.user exists
-        if (item.user) {
-          // Since we're selecting multiple columns from profiles, 
-          // the user field is an object, not an array
-          profiles.push({
-            id: item.user.id,
-            name: item.user.name,
-            email: item.user.email,
-            role: item.user.role,
-            avatar_url: item.user.avatar_url,
-            created_at: '',  // Default value as this might not be in the query
-            updated_at: ''   // Default value as this might not be in the query
-          });
-        }
-      });
-    }
-    
-    return profiles;
-  } catch (error) {
-    console.error("Error fetching conversation participants:", error);
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  const conversation = mockConversations.find(c => c.id === conversationId);
+  if (!conversation || !conversation.participants) {
     return [];
   }
+  
+  // Extract the user profiles from the participants
+  const profiles: Profile[] = [];
+  
+  conversation.participants.forEach(participant => {
+    if (participant.user) {
+      profiles.push({
+        id: participant.user.id,
+        name: participant.user.name,
+        email: participant.user.email,
+        role: participant.user.role,
+        avatar_url: participant.user.avatar_url,
+        created_at: participant.user.created_at || '',
+        updated_at: participant.user.updated_at || ''
+      });
+    }
+  });
+  
+  return profiles;
 };
 
 // Send a message to a conversation
@@ -121,34 +257,37 @@ export const sendMessage = async (
   messageText: string, 
   attachments?: any
 ): Promise<Message | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        sender_id: user.id,
-        conversation_id: conversationId,
-        message_text: messageText,
-        attachments: attachments,
-        is_read: false
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error sending message:", error);
-    return null;
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
+  // Mock the current user
+  const currentUser = mockProfiles[1]; // Using the student profile as the current user
+  
+  const newMessage: Message = {
+    id: `m${Date.now()}`,
+    conversation_id: conversationId,
+    sender_id: currentUser.id,
+    message_text: messageText,
+    timestamp: new Date().toISOString(),
+    is_read: false,
+    sender: currentUser
+  };
+  
+  // Add the message to the mock data
+  if (mockMessages[conversationId]) {
+    mockMessages[conversationId].push(newMessage);
+  } else {
+    mockMessages[conversationId] = [newMessage];
   }
+  
+  // Update the conversation's last message
+  const conversation = mockConversations.find(c => c.id === conversationId);
+  if (conversation) {
+    conversation.last_message = messageText;
+    conversation.last_message_time = newMessage.timestamp;
+  }
+  
+  return newMessage;
 };
 
 // Create a new conversation with participants
@@ -156,99 +295,80 @@ export const createConversation = async (
   name: string,
   participantIds: string[]
 ): Promise<Conversation | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Make sure the current user is included in participants
-    if (!participantIds.includes(user.id)) {
-      participantIds.push(user.id);
-    }
-    
-    // Start a transaction to create conversation and add participants
-    const { data: conversation, error: conversationError } = await supabase
-      .from("conversations")
-      .insert({
-        name: name,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-    
-    if (conversationError) {
-      throw conversationError;
-    }
-    
-    // Add participants
-    const participantsToInsert = participantIds.map(userId => ({
-      conversation_id: conversation.id,
-      user_id: userId
-    }));
-    
-    const { error: participantsError } = await supabase
-      .from("conversation_participants")
-      .insert(participantsToInsert);
-    
-    if (participantsError) {
-      throw participantsError;
-    }
-    
-    return conversation;
-  } catch (error) {
-    console.error("Error creating conversation:", error);
-    return null;
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 600));
+  
+  // Mock the current user
+  const currentUser = mockProfiles[1]; // Using the student profile as the current user
+  
+  // Make sure the current user is included in participants
+  if (!participantIds.includes(currentUser.id)) {
+    participantIds.push(currentUser.id);
   }
+  
+  // Create participant objects
+  const participants = participantIds.map(userId => {
+    const user = mockProfiles.find(p => p.id === userId);
+    return {
+      id: `p${Date.now()}${userId}`,
+      conversation_id: `conv${Date.now()}`,
+      user_id: userId,
+      user: user || null
+    };
+  });
+  
+  // Create the new conversation
+  const newConversation: Conversation = {
+    id: `conv${Date.now()}`,
+    name,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    last_message: "",
+    last_message_time: new Date().toISOString(),
+    unread_count: 0,
+    participants
+  };
+  
+  // Add the conversation to the mock data
+  mockConversations.unshift(newConversation);
+  
+  return newConversation;
 };
 
 // Mark messages as read
 export const markMessagesAsRead = async (conversationId: string): Promise<boolean> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  const messages = mockMessages[conversationId];
+  if (messages) {
+    // Find the current user (using the student profile for this mock)
+    const currentUser = mockProfiles[1];
     
-    if (!user) {
-      throw new Error("User not authenticated");
+    // Mark messages as read
+    messages.forEach(message => {
+      if (message.sender_id !== currentUser.id) {
+        message.is_read = true;
+      }
+    });
+    
+    // Update unread count in the conversation
+    const conversation = mockConversations.find(c => c.id === conversationId);
+    if (conversation) {
+      conversation.unread_count = 0;
     }
-    
-    const { error } = await supabase
-      .from("messages")
-      .update({ is_read: true })
-      .eq("conversation_id", conversationId)
-      .neq("sender_id", user.id)
-      .eq("is_read", false);
-    
-    if (error) {
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error marking messages as read:", error);
-    return false;
   }
+  
+  return true;
 };
 
 // Get user profile by ID
 export const getUserProfile = async (userId: string): Promise<Profile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    
-    if (error) {
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
-    return null;
-  }
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  const profile = mockProfiles.find(p => p.id === userId);
+  return profile || null;
 };
 
 // Check if a user can chat with another user based on roles
@@ -266,44 +386,20 @@ export const canChatWith = (userRole: string, targetRole: string): boolean => {
 
 // Get unread message count for all conversations
 export const getUnreadMessageCount = async (): Promise<number> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Get conversations the user is part of
-    const { data: participantData, error: participantError } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", user.id);
-    
-    if (participantError) {
-      throw participantError;
-    }
-    
-    if (!participantData || participantData.length === 0) {
-      return 0;
-    }
-    
-    const conversationIds = participantData.map(p => p.conversation_id);
-    
-    // Count unread messages not sent by the current user
-    const { count, error: countError } = await supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .in("conversation_id", conversationIds)
-      .neq("sender_id", user.id)
-      .eq("is_read", false);
-    
-    if (countError) {
-      throw countError;
-    }
-    
-    return count || 0;
-  } catch (error) {
-    console.error("Error getting unread message count:", error);
-    return 0;
-  }
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 150));
+  
+  // Count unread messages across all conversations
+  const currentUser = mockProfiles[1]; // Using the student profile as the current user
+  
+  let count = 0;
+  Object.values(mockMessages).forEach(messages => {
+    messages.forEach(message => {
+      if (message.sender_id !== currentUser.id && !message.is_read) {
+        count++;
+      }
+    });
+  });
+  
+  return count;
 };

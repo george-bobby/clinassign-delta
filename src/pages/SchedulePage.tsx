@@ -1,366 +1,464 @@
 
-import React, { useState } from 'react';
-import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockDetailedScheduleSlots } from '@/lib/mock-data';
-import { Calendar } from '@/components/ui/calendar';
+import React, { useState, useEffect } from 'react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { Calendar as CalendarIcon, Filter, FilePdf, Printer, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ScheduleCard from '@/components/dashboard/ScheduleCard';
-import { format, isSameDay, addDays, addMonths, isBefore, isAfter } from 'date-fns';
-import { CalendarDays, ChevronLeft, ChevronRight, Download, FileText, Filter, Printer } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import ScheduleBookingDialog from '@/components/schedule/ScheduleBookingDialog';
-import { ScheduleSlot } from '@/lib/types';
-import { toast } from "sonner";
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import ScheduleCard from '@/components/dashboard/ScheduleCard';
+import { formatDate, cn } from '@/lib/utils';
+import { ScheduleSlot } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
-const SchedulePage = () => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+// Mock department data
+const mockDepartments = [
+  { id: 'dept1', name: 'Cardiology' },
+  { id: 'dept2', name: 'Pediatrics' },
+  { id: 'dept3', name: 'Neurology' },
+  { id: 'dept4', name: 'Emergency' },
+  { id: 'dept5', name: 'Surgery' },
+  { id: 'dept6', name: 'Obstetrics' },
+];
+
+// Generate mock schedule data
+const generateMockSchedules = () => {
+  const schedules: ScheduleSlot[] = [];
+  const today = new Date();
+  
+  // Generate 50 random schedule slots across departments and dates
+  for (let i = 0; i < 50; i++) {
+    const departmentIndex = Math.floor(Math.random() * mockDepartments.length);
+    const department = mockDepartments[departmentIndex];
+    
+    // Random date within +/- 30 days
+    const randomDayOffset = Math.floor(Math.random() * 60) - 30;
+    const date = new Date(today);
+    date.setDate(today.getDate() + randomDayOffset);
+    
+    // Random capacity between 3 and 10
+    const capacity = Math.floor(Math.random() * 8) + 3;
+    
+    // Random booked count between 0 and capacity
+    const booked_count = Math.floor(Math.random() * (capacity + 1));
+    
+    // Generate random start time between 8 AM and 5 PM
+    const startHour = Math.floor(Math.random() * 10) + 8;
+    const startTime = `${startHour.toString().padStart(2, '0')}:00`;
+    
+    // End time is start time + 2-4 hours
+    const durationHours = Math.floor(Math.random() * 3) + 2;
+    const endHour = startHour + durationHours;
+    const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+    
+    schedules.push({
+      id: `schedule-${i}`,
+      department_id: department.id,
+      department: department,
+      date: format(date, 'yyyy-MM-dd'),
+      start_time: startTime,
+      end_time: endTime,
+      capacity,
+      booked_count,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+  
+  return schedules;
+};
+
+const SchedulePage: React.FC = () => {
+  const { toast } = useToast();
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
-  const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [viewMode, setViewMode] = useState<string>('calendar');
+  const [schedules, setSchedules] = useState<ScheduleSlot[]>([]);
+  const [filteredSchedules, setFilteredSchedules] = useState<ScheduleSlot[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedDateRange, setSelectedDateRange] = useState<'week' | 'month'>('week');
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Get date range based on selection (week or month)
-  const getDateRange = () => {
-    if (!date) return [];
+  // Load mock data
+  useEffect(() => {
+    const mockData = generateMockSchedules();
+    setSchedules(mockData);
+    filterSchedules(mockData, selectedDepartment, selectedDate);
+  }, []);
+  
+  // Filter schedules based on selected department and date
+  const filterSchedules = (
+    data: ScheduleSlot[],
+    department: string,
+    date?: Date
+  ) => {
+    let filtered = [...data];
     
-    const dates = [];
-    const endDate = selectedDateRange === 'week' ? addDays(date, 6) : addMonths(date, 1);
-    
-    let currentDate = new Date(date);
-    while (isBefore(currentDate, endDate) || isSameDay(currentDate, endDate)) {
-      dates.push(new Date(currentDate));
-      currentDate = addDays(currentDate, 1);
+    // Filter by department
+    if (department !== 'all') {
+      filtered = filtered.filter(slot => slot.department_id === department);
     }
     
-    return dates;
+    // Filter by date
+    if (date) {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      filtered = filtered.filter(slot => slot.date === dateStr);
+    }
+    
+    setFilteredSchedules(filtered);
   };
   
-  // Navigate to previous/next period (week or month)
-  const navigatePeriod = (direction: 'prev' | 'next') => {
-    if (!date) return;
-    
-    const days = selectedDateRange === 'week' ? 7 : 30;
-    const newDate = direction === 'prev' 
-      ? addDays(date, -days) 
-      : addDays(date, days);
-      
-    setDate(newDate);
+  // Handle department change
+  const handleDepartmentChange = (value: string) => {
+    setSelectedDepartment(value);
+    filterSchedules(schedules, value, selectedDate);
   };
   
-  // Filter schedule slots based on selected date, date range, and department
-  const filteredSlots = mockDetailedScheduleSlots.filter(slot => {
-    const slotDate = new Date(slot.date);
-    
-    // For week/month view, check if the date is within the range
-    const dateMatch = date
-      ? selectedDateRange === 'week' || selectedDateRange === 'month'
-        ? getDateRange().some(d => isSameDay(slotDate, d))
-        : isSameDay(slotDate, date)
-      : true;
-    
-    // If 'all' is selected for department, show all departments
-    const departmentMatch = selectedDepartment === 'all' || slot.department_id === selectedDepartment;
-    
-    return dateMatch && departmentMatch;
-  });
-
+  // Handle date change
+  const handleDateChange = (date?: Date) => {
+    setSelectedDate(date);
+    filterSchedules(schedules, selectedDepartment, date);
+  };
+  
+  // Handle month navigation
+  const handlePreviousMonth = () => {
+    setCurrentMonth(subMonths(currentMonth, 1));
+  };
+  
+  const handleNextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1));
+  };
+  
   // Handle booking a slot
   const handleBookSlot = (slotId: string) => {
-    console.log(`Booking slot ${slotId}`);
-    // In a real app, this would make a Supabase call
-    setBookedSlots(prev => [...prev, slotId]);
-    toast.success("Schedule slot booked successfully!");
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Find the slot and update its booked count
+      const updatedSchedules = schedules.map(slot => {
+        if (slot.id === slotId) {
+          return {
+            ...slot,
+            booked_count: slot.booked_count + 1
+          };
+        }
+        return slot;
+      });
+      
+      setSchedules(updatedSchedules);
+      setBookedSlots([...bookedSlots, slotId]);
+      
+      // Update filtered schedules
+      filterSchedules(updatedSchedules, selectedDepartment, selectedDate);
+      
+      setIsDialogOpen(false);
+      setIsLoading(false);
+      
+      toast({
+        title: "Slot Booked",
+        description: "You have successfully booked this time slot.",
+      });
+    }, 1000);
   };
   
-  // Handle opening the booking dialog
-  const handleOpenBookingDialog = (slot: ScheduleSlot) => {
+  // Handle slot click
+  const handleSlotClick = (slot: ScheduleSlot) => {
     setSelectedSlot(slot);
     setIsDialogOpen(true);
   };
-
-  // Handle generating a PDF report
-  const handleGeneratePDF = () => {
-    toast.success("Generating PDF report...");
-    // In a real app, this would generate and download a PDF
-  };
-
+  
   // Handle printing the schedule
-  const handlePrintSchedule = () => {
-    toast.success("Preparing schedule for printing...");
+  const handlePrint = () => {
     window.print();
   };
-
-  // Get all unique departments from the mock data
-  const departments = Array.from(
-    new Set(mockDetailedScheduleSlots.map(slot => slot.department_id))
-  ).map(id => {
-    const department = mockDetailedScheduleSlots.find(slot => slot.department_id === id)?.department;
-    return {
-      id,
-      name: department?.name || 'Unknown'
-    };
-  });
-
-  // Function to get schedule events for calendar highlighting
-  const getHighlightedDays = () => {
-    return mockDetailedScheduleSlots.map(slot => new Date(slot.date));
+  
+  // Handle exporting to PDF
+  const handleExportPDF = () => {
+    toast({
+      title: "Export Started",
+      description: "Your PDF is being generated and will download shortly.",
+    });
+    
+    // Simulate PDF generation delay
+    setTimeout(() => {
+      toast({
+        title: "Export Complete",
+        description: "Your schedule has been exported to PDF.",
+      });
+    }, 2000);
   };
-
+  
+  // Get schedules for a specific day
+  const getDaySchedules = (day: Date) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return schedules.filter(slot => slot.date === dateStr);
+  };
+  
+  // Calculate calendar days
+  const calendarDays = eachDayOfInterval({
+    start: startOfMonth(currentMonth),
+    end: endOfMonth(currentMonth)
+  });
+  
   return (
-    <Layout>
-      <div className="container mx-auto py-6 space-y-6 print:py-2 print:space-y-2">
-        <div className="flex justify-between items-center print:hidden">
-          <h1 className="text-2xl font-bold">Clinical Rotation Schedule</h1>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setView('calendar')} 
-                    className={view === 'calendar' ? 'bg-clinical-100' : ''}>
-              <CalendarDays className="h-4 w-4 mr-2" />
-              Calendar View
-            </Button>
-            <Button variant="outline" onClick={() => setView('list')}
-                    className={view === 'list' ? 'bg-clinical-100' : ''}>
-              <FileText className="h-4 w-4 mr-2" />
-              List View
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48">
-                <div className="space-y-2">
-                  <Button variant="ghost" className="w-full justify-start" onClick={handleGeneratePDF}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export as PDF
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start" onClick={handlePrintSchedule}>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Print Schedule
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6 print:grid-cols-1">
-          <Card className="md:col-span-1 print:hidden">
-            <CardHeader>
-              <CardTitle className="text-lg">Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Department</label>
-                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Date Range</label>
-                <div className="flex justify-between items-center mt-2 space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setSelectedDateRange('week')}
-                    className={selectedDateRange === 'week' ? 'bg-clinical-100' : ''}
-                  >
-                    Weekly
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setSelectedDateRange('month')}
-                    className={selectedDateRange === 'month' ? 'bg-clinical-100' : ''}
-                  >
-                    Monthly
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => navigatePeriod('prev')}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm font-medium">
-                    {date && (
-                      selectedDateRange === 'week'
-                        ? `Week of ${format(date, 'MMM d, yyyy')}`
-                        : `${format(date, 'MMMM yyyy')}`
-                    )}
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => navigatePeriod('next')}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="mt-2 border rounded-md">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    className="rounded-md border"
-                    modifiers={{ highlighted: getHighlightedDays() }}
-                    modifiersStyles={{
-                      highlighted: {
-                        backgroundColor: 'rgba(209, 213, 219, 0.2)',
-                        fontWeight: 'bold',
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="md:col-span-2">
-            {view === 'calendar' ? (
-              <Card>
-                <CardHeader className="print:py-2">
-                  <CardTitle className="text-lg flex justify-between items-center">
-                    <span>
-                      {date ? (
-                        selectedDateRange === 'week'
-                          ? `Schedule for Week of ${format(date, 'MMMM d, yyyy')}`
-                          : `Schedule for ${format(date, 'MMMM yyyy')}`
-                      ) : (
-                        'All Scheduled Slots'
-                      )}
-                    </span>
-                    <span className="text-sm text-gray-500 font-normal print:hidden">
-                      {filteredSlots.length} {filteredSlots.length === 1 ? 'slot' : 'slots'} found
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="print:pt-0">
-                  {filteredSlots.length > 0 ? (
-                    <div className="grid sm:grid-cols-2 gap-4 print:grid-cols-3 print:gap-2">
-                      {filteredSlots.map(slot => (
-                        <div key={slot.id} onClick={() => handleOpenBookingDialog(slot)} className="cursor-pointer">
-                          <ScheduleCard 
-                            slot={slot}
-                            isBooked={bookedSlots.includes(slot.id)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10 print:py-4">
-                      <p className="text-gray-500">No schedule slots found for the selected filters.</p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4 print:hidden"
-                        onClick={() => { setDate(undefined); setSelectedDepartment('all'); }}
-                      >
-                        <Filter className="h-4 w-4 mr-2" /> Clear Filters
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex justify-between items-center">
-                    <span>Schedule List</span>
-                    <span className="text-sm text-gray-500 font-normal">
-                      {filteredSlots.length} {filteredSlots.length === 1 ? 'slot' : 'slots'} found
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {filteredSlots.length > 0 ? (
-                      filteredSlots.map(slot => (
-                        <div 
-                          key={slot.id} 
-                          className="p-4 border rounded-md flex justify-between items-center hover:bg-gray-50 transition-colors cursor-pointer"
-                          onClick={() => handleOpenBookingDialog(slot)}
-                        >
-                          <div>
-                            <h3 className="font-semibold">{slot.department?.name}</h3>
-                            <div className="flex items-center text-sm text-gray-600 mt-1">
-                              <CalendarDays className="mr-2 h-4 w-4" />
-                              <span>{format(new Date(slot.date), 'MMMM d, yyyy')}</span>
-                            </div>
-                            <div className="flex items-center text-sm text-gray-600 mt-1">
-                              <Badge variant="outline" className="mt-1">
-                                {slot.start_time} - {slot.end_time}
-                              </Badge>
-                              <Badge variant={slot.booked_count >= slot.capacity ? "destructive" : "outline"} className="ml-2 mt-1">
-                                {slot.booked_count}/{slot.capacity} booked
-                              </Badge>
-                              {bookedSlots.includes(slot.id) && (
-                                <Badge variant="secondary" className="ml-2 mt-1">
-                                  You booked this slot
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <Button 
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent opening the dialog
-                              handleBookSlot(slot.id);
-                            }}
-                            disabled={slot.booked_count >= slot.capacity || bookedSlots.includes(slot.id)}
-                            variant="outline"
-                            className="ml-4"
-                          >
-                            {bookedSlots.includes(slot.id) ? "Booked" : slot.booked_count >= slot.capacity ? "Full" : "Book Slot"}
-                          </Button>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-10">
-                        <p className="text-gray-500">No schedule slots found for the selected filters.</p>
-                        <Button 
-                          variant="outline" 
-                          className="mt-4"
-                          onClick={() => { setDate(undefined); setSelectedDepartment('all'); }}
-                        >
-                          <Filter className="h-4 w-4 mr-2" /> Clear Filters
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+    <div className="container mx-auto p-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">Schedule Management</h1>
+        
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <FilePdf className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
         </div>
       </div>
       
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Department</label>
+              <Select
+                value={selectedDepartment}
+                onValueChange={handleDepartmentChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {mockDepartments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block">Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? formatDate(selectedDate.toISOString()) : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block">View</label>
+              <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="calendar">Calendar</TabsTrigger>
+                  <TabsTrigger value="list">List</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="space-y-6">
+        <TabsContent value="calendar" className="mt-0">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle>
+                {format(currentMonth, 'MMMM yyyy')}
+              </CardTitle>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePreviousMonth}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNextMonth}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center font-medium text-sm py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day) => {
+                  const daySchedules = getDaySchedules(day);
+                  const hasSchedules = daySchedules.length > 0;
+                  
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={cn(
+                        "min-h-[100px] p-2 border rounded-md",
+                        hasSchedules ? "hover:bg-gray-50 cursor-pointer" : "",
+                        isSameDay(day, selectedDate || new Date()) && "bg-blue-50 border-blue-200"
+                      )}
+                      onClick={() => handleDateChange(day)}
+                    >
+                      <div className="text-sm font-medium mb-1">{format(day, 'd')}</div>
+                      {hasSchedules && (
+                        <div className="space-y-1">
+                          {daySchedules.slice(0, 2).map((slot) => (
+                            <div
+                              key={slot.id}
+                              className={cn(
+                                "text-xs p-1 rounded-sm",
+                                bookedSlots.includes(slot.id)
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-blue-100 text-blue-800"
+                              )}
+                            >
+                              {slot.department?.name.substring(0, 10)}{slot.department?.name.length > 10 ? '...' : ''} - {slot.start_time}
+                            </div>
+                          ))}
+                          {daySchedules.length > 2 && (
+                            <div className="text-xs text-gray-500">
+                              +{daySchedules.length - 2} more
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="list" className="mt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Slots</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {filteredSchedules.length === 0 ? (
+                <div className="text-center py-10">
+                  <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">No slots available</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Try changing your filters or selecting a different date.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredSchedules.map((slot) => (
+                    <ScheduleCard
+                      key={slot.id}
+                      slot={slot}
+                      isBooked={bookedSlots.includes(slot.id)}
+                      onClick={() => handleSlotClick(slot)}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </div>
+      
       {/* Booking Dialog */}
-      <ScheduleBookingDialog 
-        slot={selectedSlot} 
-        isOpen={isDialogOpen} 
-        onClose={() => setIsDialogOpen(false)}
-        onBook={handleBookSlot}
-      />
-    </Layout>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Book Schedule Slot</DialogTitle>
+            <DialogDescription>
+              Review the details below and confirm your booking
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSlot && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Department:</span>
+                <span>{selectedSlot.department?.name}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Date:</span>
+                <span>{formatDate(selectedSlot.date)}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Time:</span>
+                <span>{selectedSlot.start_time} - {selectedSlot.end_time}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Availability:</span>
+                <Badge variant={bookedSlots.includes(selectedSlot.id) ? "outline" : selectedSlot.capacity - selectedSlot.booked_count > 0 ? "default" : "secondary"}>
+                  {bookedSlots.includes(selectedSlot.id)
+                    ? "Already Booked"
+                    : selectedSlot.capacity - selectedSlot.booked_count > 0
+                      ? `${selectedSlot.capacity - selectedSlot.booked_count} spots available`
+                      : "Full"}
+                </Badge>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => selectedSlot && handleBookSlot(selectedSlot.id)}
+              disabled={!selectedSlot || bookedSlots.includes(selectedSlot.id) || (selectedSlot.capacity - selectedSlot.booked_count <= 0) || isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Booking...
+                </>
+              ) : (
+                'Confirm Booking'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
