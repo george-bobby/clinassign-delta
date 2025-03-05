@@ -37,7 +37,7 @@ class MockQuery {
   private selectQuery: string | null = null;
   private inValues: any[] = [];
   private inColumn: string | null = null;
-  private mockResponse: any = null;
+  private mockData: any = null;
 
   constructor(table: string) {
     this.table = table;
@@ -102,9 +102,68 @@ class MockQuery {
     return this;
   }
 
+  // Data modification methods
+  insert(data: any) {
+    return {
+      execute: async () => {
+        console.log('Mock insert:', data);
+        return {
+          data: { ...data, id: `mock-${Date.now()}` },
+          error: null
+        };
+      }
+    };
+  }
+
+  update(data: any) {
+    return {
+      eq: (column: string, value: any) => {
+        return {
+          execute: async () => {
+            console.log(`Mock update where ${column} = ${value}:`, data);
+            return {
+              data: { ...data, id: value },
+              error: null
+            };
+          }
+        };
+      },
+      execute: async () => {
+        console.log('Mock update:', data);
+        return {
+          data,
+          error: null
+        };
+      }
+    };
+  }
+
+  delete() {
+    return {
+      eq: (column: string, value: any) => {
+        return {
+          execute: async () => {
+            console.log(`Mock delete where ${column} = ${value}`);
+            return {
+              data: { id: value },
+              error: null
+            };
+          }
+        };
+      },
+      execute: async () => {
+        console.log('Mock delete all');
+        return {
+          data: null,
+          error: null
+        };
+      }
+    };
+  }
+
   // Mock specific methods for testing
   mockResponse(response: any) {
-    this.mockResponse = response;
+    this.mockData = response;
     return this;
   }
 
@@ -125,8 +184,8 @@ class MockQuery {
   // This functions as both an async call and a chainable method
   async execute() {
     // If we have a mock response, return it
-    if (this.mockResponse) {
-      return this.mockResponse;
+    if (this.mockData) {
+      return this.mockData;
     }
 
     // In a real implementation this would query the actual data
@@ -159,14 +218,22 @@ const supabase = {
   },
 
   auth: {
-    signUp: async (credentials: { email: string; password: string }) => {
+    signUp: async (credentials: { 
+      email: string; 
+      password: string; 
+      options?: { 
+        data?: any 
+      } 
+    }) => {
       // Simulate successful signup
+      const userData = credentials.options?.data || {};
       return {
         data: {
           user: {
             id: 'new-user-id',
             email: credentials.email,
-            role: 'student'
+            role: userData?.role || 'student',
+            name: userData?.name || credentials.email.split('@')[0]
           }
         },
         error: null
@@ -244,7 +311,30 @@ const supabase = {
     })
   },
 
-  // Add any other Supabase features you need to mock
+  // Add realtime subscription support
+  channel: (channel: string) => {
+    return {
+      on: (event: string, config: any, callback: (payload: any) => void) => {
+        console.log(`Subscribed to ${channel} for ${event}`);
+        // Return this for chaining
+        return {
+          subscribe: () => {
+            console.log(`Subscription to ${channel} activated`);
+            return {
+              unsubscribe: () => {
+                console.log(`Unsubscribed from ${channel}`);
+              }
+            };
+          }
+        };
+      }
+    };
+  },
+
+  removeChannel: (channel: any) => {
+    console.log('Channel removed:', channel);
+    return true;
+  }
 };
 
 export { supabase };
