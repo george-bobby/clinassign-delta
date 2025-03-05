@@ -35,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', sessionData.session.user.id)
+            .single()
             .execute();
             
           if (profileError) {
@@ -59,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .from('profiles')
                   .select('*')
                   .eq('id', sessionData.session.user.id)
+                  .single()
                   .execute();
                   
                 if (newProfile) {
@@ -107,7 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .single()
+            .execute();
             
           if (profileError) {
             console.error('Profile fetch error on auth change:', profileError);
@@ -179,6 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
+          .single()
           .execute();
           
         if (profileError) {
@@ -206,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .from('profiles')
               .select('*')
               .eq('id', data.user.id)
+              .single()
               .execute();
               
             if (newProfile) {

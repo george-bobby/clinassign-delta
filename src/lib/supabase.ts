@@ -23,6 +23,20 @@ const mockData = {
       role: 'nursing_head',
       name: 'Nursing Head',
       avatar: null
+    },
+    { 
+      id: '4', 
+      email: 'hospital@example.com', 
+      role: 'hospital_admin',
+      name: 'Hospital Admin',
+      avatar: null
+    },
+    { 
+      id: '5', 
+      email: 'principal@example.com', 
+      role: 'principal',
+      name: 'Principal User',
+      avatar: null
     }
   ],
   // Add other mock data as needed
