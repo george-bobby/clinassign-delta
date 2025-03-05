@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Sidebar from '@/components/layout/Sidebar';
@@ -11,23 +10,64 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import ScheduleCard from '@/components/dashboard/ScheduleCard';
-import { ScheduleBookingDialog } from '@/components/schedule/ScheduleBookingDialog';
+import ScheduleBookingDialog from '@/components/schedule/ScheduleBookingDialog';
 import { useAuth } from '@/context/AuthContext';
-import { ScheduleSlot } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
+import { Department, ScheduleSlot } from '@/lib/types';
 
 // Mock data for departments
-const mockDepartments = [
-  { id: "1", name: "Emergency Care" },
-  { id: "2", name: "Pediatrics" },
-  { id: "3", name: "Obstetrics" },
-  { id: "4", name: "Surgery" },
-  { id: "5", name: "Mental Health" }
+const mockDepartments: Department[] = [
+  { 
+    id: "1", 
+    name: "Emergency Care",
+    description: "Acute care and emergency response training",
+    capacity: 10,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    id: "2", 
+    name: "Pediatrics",
+    description: "Child and adolescent healthcare",
+    capacity: 8,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    id: "3", 
+    name: "Obstetrics",
+    description: "Maternal and infant care",
+    capacity: 6,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    id: "4", 
+    name: "Surgery",
+    description: "Surgical procedures and perioperative care",
+    capacity: 6,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  { 
+    id: "5", 
+    name: "Mental Health",
+    description: "Psychiatric and psychological care",
+    capacity: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
 ];
 
+// Updated ScheduleSlot with additional properties
+interface ExtendedScheduleSlot extends ScheduleSlot {
+  department?: Department;
+  is_booked?: boolean;
+  description?: string;
+}
+
 // Mock schedule slots
-const generateMockScheduleSlots = (): ScheduleSlot[] => {
-  const slots: ScheduleSlot[] = [];
+const generateMockScheduleSlots = (): ExtendedScheduleSlot[] => {
+  const slots: ExtendedScheduleSlot[] = [];
   const departments = mockDepartments;
   const currentDate = new Date();
   
@@ -46,13 +86,16 @@ const generateMockScheduleSlots = (): ScheduleSlot[] => {
       
       slots.push({
         id: `slot-${i}-${j}`,
-        department: departments[departmentIndex],
+        department_id: departments[departmentIndex].id,
         date: format(date, 'yyyy-MM-dd'),
         start_time: `${startHour}:00`,
         end_time: `${endHour}:00`,
         capacity: 5 + Math.floor(Math.random() * 6), // 5-10 capacity
         booked_count: Math.floor(Math.random() * 5), // 0-4 bookings
         is_booked: Math.random() > 0.7, // 30% chance of being booked by current user
+        department: departments[departmentIndex],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         description: `Clinical rotation at ${departments[departmentIndex].name}`
       });
     }
@@ -69,9 +112,9 @@ const SchedulePage = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [viewMode, setViewMode] = useState<string>("weekly");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<ExtendedScheduleSlot | null>(null);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  const [scheduleData] = useState<ScheduleSlot[]>(mockScheduleSlots);
+  const [scheduleData] = useState<ExtendedScheduleSlot[]>(mockScheduleSlots);
   
   const canModifySchedule = user && (isRole('nursing_head') || isRole('hospital_admin') || isRole('principal'));
   
@@ -108,7 +151,7 @@ const SchedulePage = () => {
     return match;
   });
   
-  const handleSlotClick = (slot: ScheduleSlot) => {
+  const handleSlotClick = (slot: ExtendedScheduleSlot) => {
     setSelectedSlot(slot);
     setBookingDialogOpen(true);
   };
@@ -278,9 +321,9 @@ const SchedulePage = () => {
                   {filteredSlots.map(slot => (
                     <ScheduleCard 
                       key={slot.id} 
-                      slot={slot} 
+                      slot={slot as any} 
                       onBookSlot={handleBookSlot}
-                      isBooked={slot.is_booked}
+                      isBooked={slot.is_booked || false}
                       onClick={() => handleSlotClick(slot)}
                     />
                   ))}
@@ -337,16 +380,15 @@ const SchedulePage = () => {
                               className="text-xs p-1 rounded truncate cursor-pointer hover:bg-gray-100"
                               onClick={() => handleSlotClick(slot)}
                             >
-                              <Badge 
-                                variant="outline" 
-                                className={`text-[10px] ${
-                                  slot.is_booked 
-                                    ? 'bg-green-50 text-green-700 border-green-200' 
-                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                              <div 
+                                className={`text-[10px] py-0.5 px-1 rounded-sm ${
+                                  (slot.is_booked || false)
+                                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
                                 }`}
                               >
-                                {slot.is_booked ? 'Booked' : `${slot.capacity - slot.booked_count} slots`}
-                              </Badge>
+                                {(slot.is_booked || false) ? 'Booked' : `${slot.capacity - slot.booked_count} slots`}
+                              </div>
                               <div className="truncate">{slot.department?.name}</div>
                               <div className="truncate text-gray-500">{slot.start_time}-{slot.end_time}</div>
                             </div>
@@ -384,9 +426,10 @@ const SchedulePage = () => {
       
       <ScheduleBookingDialog
         open={bookingDialogOpen}
-        onOpenChange={setBookingDialogOpen}
+        onClose={() => setBookingDialogOpen(false)}
         slot={selectedSlot}
-        onConfirm={handleBookSlot}
+        onBook={handleBookSlot}
+        isOpen={bookingDialogOpen}
       />
     </div>
   );

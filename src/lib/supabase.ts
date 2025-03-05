@@ -84,6 +84,12 @@ const createMockResponse = (data: any = null, error: any = null) => {
   return { data, error };
 };
 
+// Helper to mock async operations
+const mockAsync = async (data: any = null, error: any = null, delay = 300) => {
+  await new Promise(resolve => setTimeout(resolve, delay));
+  return createMockResponse(data, error);
+};
+
 // Create a mock query builder that's Promise-compatible
 const createQueryBuilder = () => {
   let mockData: any[] = [];
@@ -92,7 +98,7 @@ const createQueryBuilder = () => {
     data: null as any,
     error: null as any,
 
-    // Filter methods
+    // Filter methods that return the query builder itself
     eq: (column: string, value: any) => queryBuilder,
     neq: (column: string, value: any) => queryBuilder,
     gt: (column: string, value: any) => queryBuilder,
@@ -120,16 +126,22 @@ const createQueryBuilder = () => {
     order: (column: string, options?: any) => queryBuilder,
     limit: (count: number) => queryBuilder,
     range: (from: number, to: number) => queryBuilder,
-    single: () => Promise.resolve(createMockResponse(null, null)),
-    maybeSingle: () => Promise.resolve(createMockResponse(null, null)),
-
-    // Execution methods
-    then: (callback: Function) => Promise.resolve(callback(createMockResponse(mockData, null))),
-    execute: () => Promise.resolve(createMockResponse(mockData, null)),
-    executeSingle: () => Promise.resolve(createMockResponse(null, null)),
+    
+    // Execution methods that return Promises directly
+    single: async () => await mockAsync(null, null),
+    maybeSingle: async () => await mockAsync(null, null),
+    execute: async () => await mockAsync(mockData, null),
+    
+    // For compatibility with code using .then
+    then: (callback: Function) => Promise.resolve(mockAsync(mockData, null)).then(callback)
   };
   
   return queryBuilder;
+};
+
+// Fixed count method for compatibility
+const countBuilder = {
+  execute: async () => await mockAsync({ count: 0 }, null)
 };
 
 // Create a mock supabase object that can be used as a drop-in replacement
@@ -152,6 +164,7 @@ export const supabase = {
       return { data: { user }, error: null };
     },
     onAuthStateChange: (callback: Function) => {
+      // Return an object that mimics the Supabase subscription
       return { 
         data: { subscription: { unsubscribe: () => {} } },
         error: null
@@ -161,50 +174,44 @@ export const supabase = {
   from: (table: string) => {
     return {
       select: (query = '*') => {
-        return createQueryBuilder();
+        const builder = createQueryBuilder();
+        
+        // Add proper count method
+        builder.count = (options?: any) => countBuilder;
+        
+        return builder;
       },
       insert: (data: any) => {
         return {
           select: (query = '*') => {
             return {
-              single: async () => {
-                // Simulate network request
-                await new Promise(resolve => setTimeout(resolve, 500));
-                return { data: { ...data, id: 'mock-id' }, error: null };
-              }
+              single: async () => await mockAsync({ ...data, id: 'mock-id' }, null, 500)
             };
-          }
+          },
+          execute: async () => await mockAsync({ ...data, id: 'mock-id' }, null, 500)
         };
       },
       update: (data: any) => {
         return {
           eq: (column: string, value: any) => {
             return {
-              then: async () => {
-                // Simulate network request
-                await new Promise(resolve => setTimeout(resolve, 400));
-                return { data: null, error: null };
-              }
+              execute: async () => await mockAsync(null, null, 400)
             };
-          }
+          },
+          execute: async () => await mockAsync(null, null, 400)
         };
       },
       delete: () => {
         return {
           eq: (column: string, value: any) => {
             return {
-              then: async () => {
-                // Simulate network request
-                await new Promise(resolve => setTimeout(resolve, 400));
-                return { data: null, error: null };
-              }
+              execute: async () => await mockAsync(null, null, 400)
             };
-          }
+          },
+          execute: async () => await mockAsync(null, null, 400)
         };
       },
-      count: (options?: any) => {
-        return { data: 0, error: null };
-      }
+      count: (options?: any) => countBuilder
     };
   },
   // Add mock function for Supabase Realtime

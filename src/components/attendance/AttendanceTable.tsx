@@ -69,16 +69,17 @@ const AttendanceTable = ({
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const response = await supabase
         .from('attendance_records')
         .update({ 
           status: editStatus,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id);
+        .eq('id', id)
+        .execute();
         
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw response.error;
       }
       
       toast({
@@ -107,13 +108,14 @@ const AttendanceTable = ({
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const response = await supabase
         .from('attendance_records')
         .delete()
-        .eq('id', deleteDialog.id);
+        .eq('id', deleteDialog.id)
+        .execute();
         
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw response.error;
       }
       
       toast({
@@ -140,7 +142,7 @@ const AttendanceTable = ({
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const response = await supabase
         .from('attendance_records')
         .insert({
           student_id: studentId,
@@ -150,10 +152,11 @@ const AttendanceTable = ({
           department,
           marked_by: user?.id,
           marker_role: user?.role
-        });
+        })
+        .execute();
         
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw response.error;
       }
       
       toast({

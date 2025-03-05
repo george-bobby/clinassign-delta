@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -40,29 +39,39 @@ const AttendanceFilters = ({
   useEffect(() => {
     // Fetch departments from Supabase
     const fetchDepartments = async () => {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .order('name');
-        
-      if (error) {
-        console.error('Error fetching departments:', error);
-      } else {
-        setDepartments(data || []);
+      try {
+        const response = await supabase
+          .from('departments')
+          .select('*')
+          .order('name')
+          .execute();
+          
+        if (response.error) {
+          console.error('Error fetching departments:', response.error);
+        } else {
+          setDepartments(response.data || []);
+        }
+      } catch (error) {
+        console.error('Exception fetching departments:', error);
       }
     };
 
     // Fetch students from Supabase
     const fetchStudents = async () => {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .order('name');
-        
-      if (error) {
-        console.error('Error fetching students:', error);
-      } else {
-        setStudents(data || []);
+      try {
+        const response = await supabase
+          .from('students')
+          .select('*')
+          .order('name')
+          .execute();
+          
+        if (response.error) {
+          console.error('Error fetching students:', response.error);
+        } else {
+          setStudents(response.data || []);
+        }
+      } catch (error) {
+        console.error('Exception fetching students:', error);
       }
     };
 
