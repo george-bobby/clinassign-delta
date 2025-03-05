@@ -1,3 +1,4 @@
+
 // Mock Supabase client for frontend development without backend
 
 const mockData = {
@@ -45,7 +46,27 @@ class MockQuery {
   // Filter methods
   eq(column: string, value: any) {
     this.filters[column] = { type: 'eq', value };
-    return this;
+    return {
+      single: () => {
+        return {
+          data: null,
+          error: null,
+          execute: async () => {
+            return {
+              data: null,
+              error: null
+            };
+          }
+        };
+      },
+      execute: async () => {
+        console.log(`Mock query where ${column} = ${value}`);
+        return {
+          data: [],
+          error: null
+        };
+      }
+    };
   }
 
   neq(column: string, value: any) {
@@ -206,32 +227,6 @@ class MockQuery {
     return {
       data: 0,
       error: null
-    };
-  }
-
-  // Add eq after select (common pattern in Supabase)
-  eq(column: string, value: any) {
-    this.filters[column] = { type: 'eq', value };
-    return {
-      single: () => {
-        return {
-          data: null,
-          error: null,
-          execute: async () => {
-            return {
-              data: null,
-              error: null
-            };
-          }
-        };
-      },
-      execute: async () => {
-        console.log(`Mock query where ${column} = ${value}`);
-        return {
-          data: [],
-          error: null
-        };
-      }
     };
   }
 }
