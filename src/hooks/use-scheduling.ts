@@ -177,7 +177,7 @@ export const useScheduling = ({
         .from('schedule_slots')
         .select('*')
         .eq('id', slotId)
-        .single();
+        .execute();
       
       if (slotError) {
         throw slotError;
@@ -189,13 +189,14 @@ export const useScheduling = ({
       }
       
       // Create booking
-      const { error: bookingError } = await supabase
+      const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert({
           slot_id: slotId,
           student_id: userId,
           status: 'pending'
-        });
+        })
+        .execute();
       
       if (bookingError) {
         throw bookingError;
@@ -223,13 +224,14 @@ export const useScheduling = ({
   const cancelBooking = async (bookingId: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      const { data: deleteData, error: deleteError } = await supabase
         .from('bookings')
         .delete()
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .execute();
       
-      if (error) {
-        throw error;
+      if (deleteError) {
+        throw deleteError;
       }
       
       toast.success('Successfully cancelled the booking.');
@@ -254,13 +256,14 @@ export const useScheduling = ({
   const approveBooking = async (bookingId: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('bookings')
         .update({ status: 'approved' })
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .execute();
       
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw updateError;
       }
       
       toast.success('Successfully approved the booking.');
@@ -284,13 +287,14 @@ export const useScheduling = ({
   const rejectBooking = async (bookingId: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('bookings')
         .update({ status: 'rejected' })
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .execute();
       
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw updateError;
       }
       
       toast.success('Successfully rejected the booking.');
@@ -314,16 +318,17 @@ export const useScheduling = ({
   const markAsCompleted = async (bookingId: string, hoursLogged: number): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('bookings')
         .update({ 
           status: 'completed',
           hours_logged: hoursLogged
         })
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .execute();
       
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw updateError;
       }
       
       toast.success(`Successfully marked booking as completed with ${hoursLogged} hours.`);
@@ -354,12 +359,13 @@ export const useScheduling = ({
         return rest;
       });
       
-      const { error } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('schedule_slots')
-        .insert(dbSlots);
+        .insert(dbSlots)
+        .execute();
       
-      if (error) {
-        throw error;
+      if (insertError) {
+        throw insertError;
       }
       
       toast.success(`Successfully created ${slots.length} schedule slots.`);
