@@ -5,29 +5,45 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface ScheduleCardProps {
   slot: ScheduleSlot;
   onBookSlot?: (slotId: string) => void;
   isBooked?: boolean;
+  onClick?: () => void;
 }
 
 const ScheduleCard: React.FC<ScheduleCardProps> = ({ 
   slot, 
   onBookSlot,
-  isBooked = false 
+  isBooked = false,
+  onClick
 }) => {
   const availableSpots = slot.capacity - slot.booked_count;
   const isFull = availableSpots <= 0;
   
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300 animate-scale-in">
+    <Card 
+      className={cn(
+        "overflow-hidden hover:shadow-md transition-shadow duration-300 animate-scale-in",
+        onClick ? "cursor-pointer transform hover:scale-[1.02] transition-transform" : ""
+      )}
+      onClick={onClick}
+    >
       <div className={cn(
         "h-2",
-        isFull ? "bg-gray-400" : "bg-clinical-500"
+        isBooked ? "bg-green-500" : isFull ? "bg-gray-400" : "bg-clinical-500"
       )} />
       <CardContent className="p-5">
-        <h3 className="font-semibold text-gray-900">{slot.department?.name || 'Unknown Department'}</h3>
+        <div className="flex justify-between items-start">
+          <h3 className="font-semibold text-gray-900 line-clamp-1">{slot.department?.name || 'Unknown Department'}</h3>
+          {isBooked && (
+            <Badge variant="success" className="bg-green-100 text-green-800 border-green-300">
+              Booked
+            </Badge>
+          )}
+        </div>
         
         <div className="mt-3 space-y-2">
           <div className="flex items-center text-sm text-gray-600">
@@ -59,7 +75,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             <div 
               className={cn(
                 "h-1.5 rounded-full",
-                isFull ? "bg-gray-400" : "bg-clinical-500"
+                isBooked ? "bg-green-500" : isFull ? "bg-gray-400" : "bg-clinical-500"
               )}
               style={{ width: `${(slot.booked_count / slot.capacity) * 100}%` }}
             ></div>
@@ -67,16 +83,19 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
         </div>
       </CardContent>
       
-      <CardFooter className="px-5 py-3 bg-gray-50">
-        {onBookSlot && (
+      {onBookSlot && (
+        <CardFooter className="px-5 py-3 bg-gray-50">
           <Button
-            onClick={() => onBookSlot(slot.id)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering onClick of the card
+              onBookSlot(slot.id);
+            }}
             disabled={isFull || isBooked}
             variant={isBooked ? "outline" : "default"}
             className={cn(
               "w-full transition-all",
               isBooked 
-                ? "border-clinical-500 text-clinical-700" 
+                ? "border-green-500 text-green-700 bg-green-50" 
                 : isFull 
                   ? "bg-gray-400 hover:bg-gray-500" 
                   : "bg-clinical-600 hover:bg-clinical-700"
@@ -84,8 +103,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
           >
             {isBooked ? "Already Booked" : isFull ? "Full" : "Book Slot"}
           </Button>
-        )}
-      </CardFooter>
+        </CardFooter>
+      )}
     </Card>
   );
 };
