@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { ScheduleSlot } from '@/lib/types';
 import { 
   Dialog, 
   DialogContent, 
@@ -11,34 +12,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, MapPin, UserCheck, UserX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { format as formatDate } from 'date-fns';
-
-interface ScheduleSlotProps {
-  id: string;
-  department_id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  capacity: number;
-  booked_count: number;
-  created_at: string;
-  updated_at: string;
-  department?: {
-    id: string;
-    name: string;
-    description: string;
-    capacity: number;
-    created_at: string;
-    updated_at: string;
-  };
-  is_booked?: boolean;
-  description?: string;
-}
+import { formatDate } from '@/lib/utils';
+import { toast } from "sonner";
 
 interface ScheduleBookingDialogProps {
-  slot: ScheduleSlotProps | null;
+  slot: ScheduleSlot | null;
   isOpen: boolean;
-  open: boolean;
   onClose: () => void;
   onBook: (slotId: string) => void;
 }
@@ -46,7 +25,6 @@ interface ScheduleBookingDialogProps {
 const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({ 
   slot, 
   isOpen, 
-  open,
   onClose,
   onBook
 }) => {
@@ -57,10 +35,12 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
   
   const handleBooking = () => {
     onBook(slot.id);
+    toast.success("Slot booked successfully!");
+    onClose();
   };
   
   return (
-    <Dialog open={open || isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">{slot.department?.name || 'Unknown Department'}</DialogTitle>
@@ -73,7 +53,7 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="px-3 py-1">
               <Calendar className="h-4 w-4 mr-2" />
-              {formatDate(new Date(slot.date), 'MMM dd, yyyy')}
+              {formatDate(slot.date)}
             </Badge>
             
             <Badge variant="outline" className="px-3 py-1">
@@ -85,7 +65,7 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
           <div className="bg-muted p-3 rounded-md flex flex-col gap-2">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-2 text-blue-500" />
+                <MapPin className="h-4 w-4 mr-2 text-clinical-500" />
                 <span className="text-sm font-medium">Department</span>
               </div>
               <span className="text-sm">{slot.department?.name}</span>
@@ -93,7 +73,7 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
             
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <UserCheck className="h-4 w-4 mr-2 text-blue-500" />
+                <UserCheck className="h-4 w-4 mr-2 text-clinical-500" />
                 <span className="text-sm font-medium">Booked Spots</span>
               </div>
               <span className="text-sm">{slot.booked_count}/{slot.capacity}</span>
@@ -101,7 +81,7 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
             
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <UserX className="h-4 w-4 mr-2 text-blue-500" />
+                <UserX className="h-4 w-4 mr-2 text-clinical-500" />
                 <span className="text-sm font-medium">Available Spots</span>
               </div>
               <span className="text-sm">{availableSpots}</span>
@@ -110,16 +90,10 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
           
           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
             <div 
-              className={`h-2 rounded-full ${isFull ? "bg-gray-400" : "bg-blue-500"}`}
+              className={`h-2 rounded-full ${isFull ? "bg-gray-400" : "bg-clinical-500"}`}
               style={{ width: `${(slot.booked_count / slot.capacity) * 100}%` }}
             ></div>
           </div>
-
-          {slot.description && (
-            <div className="text-sm text-gray-600 mt-2">
-              {slot.description}
-            </div>
-          )}
         </div>
         
         <DialogFooter className="flex sm:justify-between mt-4">
@@ -128,10 +102,10 @@ const ScheduleBookingDialog: React.FC<ScheduleBookingDialogProps> = ({
           </Button>
           <Button 
             onClick={handleBooking}
-            disabled={isFull || slot.is_booked}
-            className={isFull || slot.is_booked ? "bg-gray-400 cursor-not-allowed" : ""}
+            disabled={isFull}
+            className={isFull ? "bg-gray-400 cursor-not-allowed" : "bg-clinical-500 hover:bg-clinical-600"}
           >
-            {slot.is_booked ? "Already Booked" : (isFull ? "No Available Spots" : "Confirm Booking")}
+            {isFull ? "No Available Spots" : "Confirm Booking"}
           </Button>
         </DialogFooter>
       </DialogContent>

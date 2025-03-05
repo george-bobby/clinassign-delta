@@ -1,250 +1,65 @@
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
 
-// Mock Supabase client for frontend development without backend
+const supabaseUrl = 'https://acmihgikuqzekgewttyf.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjbWloZ2lrdXF6ZWtnZXd0dHlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NTA2MjAsImV4cCI6MjA1NjMyNjYyMH0.OXknSZFFSjy7Q3SnjDeYIfgBJ25l8MTkxm39OJE2xoM';
 
-const mockData = {
-  users: [
-    { 
-      id: '1', 
-      email: 'student@example.com', 
-      role: 'student',
-      name: 'Student User',
-      avatar: null
-    },
-    { 
-      id: '2', 
-      email: 'tutor@example.com', 
-      role: 'tutor',
-      name: 'Tutor User',
-      avatar: null
-    },
-    { 
-      id: '3', 
-      email: 'head@example.com', 
-      role: 'nursing_head',
-      name: 'Nursing Head',
-      avatar: null
-    }
-  ],
-  // Add other mock data as needed
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+
+// Auth functions
+export const signIn = async (email: string, password: string) => {
+  return await supabase.auth.signInWithPassword({ email, password });
 };
 
-class MockQuery {
-  private table: string;
-  private filters: any = {};
-  private orderingColumn: string | null = null;
-  private orderingDirection: 'asc' | 'desc' = 'asc';
-  private limitCount: number | null = null;
-  private selectQuery: string | null = null;
-  private inValues: any[] = [];
-  private inColumn: string | null = null;
-  private mockResponse: any = null;
-
-  constructor(table: string) {
-    this.table = table;
-  }
-
-  // Filter methods
-  eq(column: string, value: any) {
-    this.filters[column] = { type: 'eq', value };
-    return this;
-  }
-
-  neq(column: string, value: any) {
-    this.filters[column] = { type: 'neq', value };
-    return this;
-  }
-
-  gt(column: string, value: any) {
-    this.filters[column] = { type: 'gt', value };
-    return this;
-  }
-
-  gte(column: string, value: any) {
-    this.filters[column] = { type: 'gte', value };
-    return this;
-  }
-
-  lt(column: string, value: any) {
-    this.filters[column] = { type: 'lt', value };
-    return this;
-  }
-
-  lte(column: string, value: any) {
-    this.filters[column] = { type: 'lte', value };
-    return this;
-  }
-
-  in(column: string, values: any[]) {
-    this.inColumn = column;
-    this.inValues = values;
-    return this;
-  }
-
-  is(column: string, value: any) {
-    this.filters[column] = { type: 'is', value };
-    return this;
-  }
-
-  // Query building methods
-  select(query: string = '*') {
-    this.selectQuery = query;
-    return this;
-  }
-
-  order(column: string, options: { ascending?: boolean } = {}) {
-    this.orderingColumn = column;
-    this.orderingDirection = options.ascending !== false ? 'asc' : 'desc';
-    return this;
-  }
-
-  limit(count: number) {
-    this.limitCount = count;
-    return this;
-  }
-
-  // Mock specific methods for testing
-  mockResponse(response: any) {
-    this.mockResponse = response;
-    return this;
-  }
-
-  single() {
-    return {
-      data: null,
-      error: null,
-      async execute() {
-        // This would perform the actual filtering in a real implementation
-        return {
-          data: null,
-          error: null
-        };
-      }
-    };
-  }
-
-  // This functions as both an async call and a chainable method
-  async execute() {
-    // If we have a mock response, return it
-    if (this.mockResponse) {
-      return this.mockResponse;
+export const signUp = async (email: string, password: string, metadata: any) => {
+  return await supabase.auth.signUp({ 
+    email, 
+    password,
+    options: {
+      data: metadata
     }
+  });
+};
 
-    // In a real implementation this would query the actual data
-    return {
-      data: [],
-      error: null
+export const signOut = async () => {
+  return await supabase.auth.signOut();
+};
+
+// Mock functions for development purposes
+export const mockSignIn = async (email: string, password: string) => {
+  // Try Supabase auth first
+  const { data: authData, error: authError } = await signIn(email, password);
+  
+  // If Supabase auth succeeds, return the result
+  if (!authError && authData) {
+    return { data: authData, error: null };
+  }
+  
+  // Otherwise, simulate authentication for demo
+  if (email && password) {
+    const role = getSimulatedRoleForEmail(email);
+    return { 
+      data: { user: { id: '123', email, role } }, 
+      error: null 
     };
   }
+  return { data: null, error: new Error('Invalid credentials') };
+};
 
-  // Support for common promise pattern
-  async then(callback: (value: { data: any; error: any }) => any) {
-    const result = await this.execute();
-    return callback(result);
-  }
+export const mockSignOut = async () => {
+  // Try real signout first
+  const { error } = await signOut();
+  
+  // Return mock response regardless
+  return { error: null };
+};
 
-  // Count method for aggregations
-  async count() {
-    // In a real implementation this would count matching records
-    return {
-      data: 0,
-      error: null
-    };
-  }
+// Helper to simulate different roles based on email
+function getSimulatedRoleForEmail(email: string): string {
+  if (email.includes('student')) return 'student';
+  if (email.includes('tutor')) return 'tutor';
+  if (email.includes('nursing')) return 'nursing_head';
+  if (email.includes('hospital')) return 'hospital_admin';
+  if (email.includes('principal')) return 'principal';
+  return 'student'; // Default role
 }
-
-// Set up the actual mock client
-const supabase = {
-  from: (table: string) => {
-    return new MockQuery(table);
-  },
-
-  auth: {
-    signUp: async (credentials: { email: string; password: string }) => {
-      // Simulate successful signup
-      return {
-        data: {
-          user: {
-            id: 'new-user-id',
-            email: credentials.email,
-            role: 'student'
-          }
-        },
-        error: null
-      };
-    },
-
-    signInWithPassword: async (credentials: { email: string; password: string }) => {
-      // Find matching user in mock data
-      const user = mockData.users.find(u => u.email === credentials.email);
-      
-      if (user) {
-        return {
-          data: { user },
-          error: null
-        };
-      }
-      
-      return {
-        data: null,
-        error: new Error('Invalid login credentials')
-      };
-    },
-
-    signOut: async () => {
-      return {
-        error: null
-      };
-    },
-
-    getUser: async () => {
-      // Return a mock logged-in user
-      return {
-        data: { user: mockData.users[0] },
-        error: null
-      };
-    },
-
-    getSession: async () => {
-      // Return a mock session
-      return {
-        data: { 
-          session: {
-            user: mockData.users[0]
-          }
-        },
-        error: null
-      };
-    },
-
-    onAuthStateChange: (callback: (event: string, session: any) => void) => {
-      // Return a mock unsubscribe function
-      return {
-        data: {
-          subscription: {
-            unsubscribe: () => {}
-          }
-        }
-      };
-    }
-  },
-
-  storage: {
-    from: (bucket: string) => ({
-      upload: async (path: string, file: File) => {
-        return {
-          data: { path },
-          error: null
-        };
-      },
-      getPublicUrl: (path: string) => {
-        return { 
-          data: { publicUrl: `https://mock-storage-url.com/${path}` }
-        };
-      }
-    })
-  },
-
-  // Add any other Supabase features you need to mock
-};
-
-export { supabase };
