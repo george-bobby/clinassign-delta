@@ -19,6 +19,9 @@ import ReviewCasesPage from "./pages/ReviewCasesPage";
 import StudentsPage from "./pages/StudentsPage";
 import TutorsPage from "./pages/TutorsPage";
 import SchedulePage from "./pages/SchedulePage";
+import CaseStudiesPage from './pages/CaseStudiesPage';
+import Chatbot from './pages/Chatbot';
+
 
 const queryClient = new QueryClient();
 
@@ -43,6 +46,9 @@ const App = () => (
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/tutors" element={<TutorsPage />} />
             <Route path="/schedule" element={<SchedulePage />} />
+            <Route path="/case-studies" element={<CaseStudiesPage />} />
+            <Route path="/chatbot" element={<Chatbot />} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

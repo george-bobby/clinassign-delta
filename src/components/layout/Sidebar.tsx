@@ -3,12 +3,12 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
-import { 
-  Calendar, 
-  GraduationCap, 
-  Home, 
-  Hospital, 
-  MessageSquare, 
+import {
+  Calendar,
+  GraduationCap,
+  Home,
+  Hospital,
+  MessageSquare,
   Users,
   Book,
   Clock,
@@ -16,7 +16,8 @@ import {
   Check,
   FileText,
   BarChart3,
-  Building
+  Building,
+  BotMessageSquare
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,8 +38,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon, label, isActive }) 
       to={to}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-        isActive 
-          ? "bg-clinical-50 text-clinical-700 font-medium" 
+        isActive
+          ? "bg-clinical-50 text-clinical-700 font-medium"
           : "text-slate-600 hover:bg-clinical-50 hover:text-clinical-700"
       )}
     >
@@ -51,7 +52,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon, label, isActive }) 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const { user, isRole } = useAuth();
   const location = useLocation();
-  
+
   // If no user, don't show sidebar
   if (!user) return null;
 
@@ -80,14 +81,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Case Studies'
         },
         {
+          to: '/chat',
+          icon: <MessageSquare className="h-4 w-4" />,
+          label: 'Chat'
+        },
+        {
           to: '/attendance',
           icon: <Clock className="h-4 w-4" />,
           label: 'Attendance'
         },
         {
-          to: '/chat',
-          icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Chat'
+          to: '/chatbot',
+          icon: <BotMessageSquare className="h-4 w-4" />,
+          label: 'Chatbot'
         }
       ],
       tutor: [
@@ -110,6 +116,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
           label: 'Chat'
+        },
+        {
+          to: '/chatbot',
+          icon: <BotMessageSquare className="h-4 w-4" />,
+          label: 'Chatbot'
         }
       ],
       nursing_head: [
@@ -142,6 +153,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
           label: 'Chat'
+        },
+        {
+          to: '/chatbot',
+          icon: <BotMessageSquare className="h-4 w-4" />,
+          label: 'Chatbot'
         }
       ],
       hospital_admin: [
@@ -179,6 +195,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
           label: 'Chat'
+        },
+        {
+          to: '/chatbot',
+          icon: <BotMessageSquare className="h-4 w-4" />,
+          label: 'Chatbot'
         }
       ],
       principal: [
@@ -206,6 +227,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           to: '/chat',
           icon: <MessageSquare className="h-4 w-4" />,
           label: 'Chat'
+        },
+        {
+          to: '/chatbot',
+          icon: <BotMessageSquare className="h-4 w-4" />,
+          label: 'Chatbot'
         }
       ]
     };
@@ -229,7 +255,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   };
 
   return (
-    <div 
+    <div
       className={cn(
         "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r bg-white transition-transform duration-300 ease-in-out",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
@@ -243,14 +269,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           <span className="font-semibold text-xl">ClinAssign</span>
         </Link>
       </div>
-      
+
       <div className="py-4 px-4">
         <div className="mb-3">
           <p className="text-xs font-semibold uppercase text-gray-500 mb-2 px-3">
             Role: {user?.role?.replace('_', ' ')}
           </p>
         </div>
-        
+
         <div className="space-y-1">
           {renderNavItems()}
         </div>
