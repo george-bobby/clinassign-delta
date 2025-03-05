@@ -7,6 +7,7 @@ import Dashboard from '@/pages/Dashboard';
 import AttendancePage from '@/pages/AttendancePage';
 import ChatPage from '@/pages/ChatPage';
 import SchedulePage from '@/pages/SchedulePage';
+import CaseStudiesPage from '@/pages/CaseStudiesPage';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -21,6 +22,7 @@ const App = () => {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/case-studies" element={<CaseStudiesPage />} />
         </Routes>
         <Toaster />
       </AuthProvider>
