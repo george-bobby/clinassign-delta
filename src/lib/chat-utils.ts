@@ -91,16 +91,16 @@ export const fetchConversationParticipants = async (conversationId: string): Pro
     
     if (data && data.length > 0) {
       data.forEach(item => {
-        // Check if item.user exists and is properly structured
+        // Check if item.user exists
         if (item.user) {
-          // Need to access the specific user object properties
-          const user = item.user;
+          // Since we're selecting multiple columns from profiles, 
+          // the user field is an object, not an array
           profiles.push({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            avatar_url: user.avatar_url,
+            id: item.user.id,
+            name: item.user.name,
+            email: item.user.email,
+            role: item.user.role,
+            avatar_url: item.user.avatar_url,
             created_at: '',  // Default value as this might not be in the query
             updated_at: ''   // Default value as this might not be in the query
           });
