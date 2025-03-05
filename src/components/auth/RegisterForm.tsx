@@ -76,8 +76,7 @@ const RegisterForm: React.FC = () => {
             email: email,
             name: name,
             role: role
-          })
-          .execute();
+          });
         
         if (profileError) throw profileError;
         

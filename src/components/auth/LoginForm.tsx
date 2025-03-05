@@ -30,11 +30,11 @@ const LoginForm: React.FC = () => {
     }
   };
   
-  // Demo user suggestions with password
+  // Demo user suggestions
   const demoUsers = [
     { email: 'student@example.com', password: 'password123', label: 'Student' },
     { email: 'tutor@example.com', password: 'password123', label: 'Tutor' },
-    { email: 'head@example.com', password: 'password123', label: 'Nursing Head' },
+    { email: 'nursing@example.com', password: 'password123', label: 'Nursing Head' },
     { email: 'hospital@example.com', password: 'password123', label: 'Hospital Admin' },
     { email: 'principal@example.com', password: 'password123', label: 'Principal' },
   ];

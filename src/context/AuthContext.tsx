@@ -35,22 +35,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', sessionData.session.user.id)
-            .single()
-            .execute();
+            .single();
             
           if (profileError) {
             console.error('Profile fetch error:', profileError);
             // If no profile found, try to create one with basic info
             if (sessionData.session.user.email) {
-              const { data: insertData, error: insertError } = await supabase
+              const { error: insertError } = await supabase
                 .from('profiles')
                 .insert({
                   id: sessionData.session.user.id,
                   email: sessionData.session.user.email,
                   name: sessionData.session.user.email.split('@')[0],
                   role: 'student' as UserRole
-                })
-                .execute();
+                });
                 
               if (insertError) {
                 console.error('Profile creation error:', insertError);
@@ -60,8 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .from('profiles')
                   .select('*')
                   .eq('id', sessionData.session.user.id)
-                  .single()
-                  .execute();
+                  .single();
                   
                 if (newProfile) {
                   setUser({
@@ -109,8 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single()
-            .execute();
+            .single();
             
           if (profileError) {
             console.error('Profile fetch error on auth change:', profileError);
@@ -182,23 +178,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
-          .single()
-          .execute();
+          .single();
           
         if (profileError) {
           console.error('Profile fetch error:', profileError);
           
           // If profile doesn't exist, create one
           if (data.user.email) {
-            const { data: insertData, error: insertError } = await supabase
+            const { error: insertError } = await supabase
               .from('profiles')
               .insert({
                 id: data.user.id,
                 email: data.user.email,
                 name: data.user.email.split('@')[0],
                 role: getSimulatedRoleForEmail(data.user.email) as UserRole
-              })
-              .execute();
+              });
               
             if (insertError) {
               console.error('Profile creation error:', insertError);
@@ -210,8 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .from('profiles')
               .select('*')
               .eq('id', data.user.id)
-              .single()
-              .execute();
+              .single();
               
             if (newProfile) {
               const userData: User = {
