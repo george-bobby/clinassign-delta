@@ -39,7 +39,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
         <div className="flex justify-between items-start">
           <h3 className="font-semibold text-gray-900 line-clamp-1">{slot.department?.name || 'Unknown Department'}</h3>
           {isBooked && (
-            <Badge variant="success" className="bg-green-100 text-green-800 border-green-300">
+            <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
               Booked
             </Badge>
           )}
