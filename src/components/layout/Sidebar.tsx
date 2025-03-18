@@ -117,11 +117,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           icon: <MessageSquare className="h-4 w-4" />,
           label: 'Chat'
         },
-        {
-          to: '/chatbot',
-          icon: <BotMessageSquare className="h-4 w-4" />,
-          label: 'Chatbot'
-        }
       ],
       nursing_head: [
         {
@@ -135,6 +130,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Tutors'
         },
         {
+          to: '/manage-schedule',
+          icon: <Calendar className="h-4 w-4" />,
+          label: 'Manage Schedule'
+        },
+        {
           to: '/students',
           icon: <GraduationCap className="h-4 w-4" />,
           label: 'Students'
@@ -145,37 +145,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           label: 'Attendance'
         },
         {
-          to: '/reports',
-          icon: <FileText className="h-4 w-4" />,
-          label: 'Reports'
+          to: '/review-cases',
+          icon: <Book className="h-4 w-4" />,
+          label: 'Review Cases'
         },
-        {
-          to: '/chat',
-          icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Chat'
-        },
-        {
-          to: '/chatbot',
-          icon: <BotMessageSquare className="h-4 w-4" />,
-          label: 'Chatbot'
-        }
       ],
       hospital_admin: [
-        {
-          to: '/manage-schedule',
-          icon: <Calendar className="h-4 w-4" />,
-          label: 'Manage Schedule'
-        },
-        {
-          to: '/attendance',
-          icon: <Clock className="h-4 w-4" />,
-          label: 'Mark Attendance'
-        },
-        {
-          to: '/students',
-          icon: <GraduationCap className="h-4 w-4" />,
-          label: 'Students'
-        },
         {
           to: '/departments',
           icon: <Hospital className="h-4 w-4" />,
@@ -191,23 +166,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           icon: <FileText className="h-4 w-4" />,
           label: 'Reports'
         },
-        {
-          to: '/chat',
-          icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Chat'
-        },
-        {
-          to: '/chatbot',
-          icon: <BotMessageSquare className="h-4 w-4" />,
-          label: 'Chatbot'
-        }
       ],
       principal: [
-        {
-          to: '/departments',
-          icon: <Hospital className="h-4 w-4" />,
-          label: 'Departments'
-        },
         {
           to: '/users',
           icon: <User className="h-4 w-4" />,
@@ -218,21 +178,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           icon: <BarChart3 className="h-4 w-4" />,
           label: 'Reports'
         },
-        {
-          to: '/attendance',
-          icon: <Clock className="h-4 w-4" />,
-          label: 'Attendance'
-        },
-        {
-          to: '/chat',
-          icon: <MessageSquare className="h-4 w-4" />,
-          label: 'Chat'
-        },
-        {
-          to: '/chatbot',
-          icon: <BotMessageSquare className="h-4 w-4" />,
-          label: 'Chatbot'
-        }
       ]
     };
 
