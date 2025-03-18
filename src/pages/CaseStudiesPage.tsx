@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,8 +11,9 @@ import { Book, FileText, Clock, CheckCircle, Edit, Plus, User, Calendar, Hospita
 import { useToast } from '@/hooks/use-toast';
 import { CaseStudyStatus } from '@/lib/types';
 import CaseStudyForm from '../components/case-studies/CaseStudyForm';
+import { fetchCaseStudies, fetchPredictionForCaseStudy, updateCaseStudy } from '@/components/case-studies/CaseStudyService';
 
-// Mock case studies data
+// Mock case studies data for fallback
 const mockCaseStudies = [
     {
         id: '1',
@@ -66,28 +68,102 @@ const statusColors = {
     approved: 'bg-green-100 text-green-800'
 };
 
+interface FormattedCaseStudy {
+    id: string;
+    title: string;
+    description: string;
+    status: CaseStudyStatus;
+    department: string;
+    date: string;
+    learning_outcomes: string;
+    grade: string | null;
+    feedback: string | null;
+    student_id?: string;
+}
+
 const CaseStudiesPage = () => {
     const { toast } = useToast();
     const [activeTab, setActiveTab] = useState('all');
-    const [selectedCase, setSelectedCase] = useState<any>(null);
+    const [selectedCase, setSelectedCase] = useState<FormattedCaseStudy | null>(null);
     const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
     const [formOpen, setFormOpen] = useState(false);
     const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
     const [editData, setEditData] = useState<any>(null);
+    const [caseStudies, setCaseStudies] = useState<FormattedCaseStudy[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch case studies from Supabase
+    useEffect(() => {
+        const loadCaseStudies = async () => {
+            try {
+                setLoading(true);
+                const data = await fetchCaseStudies();
+                
+                // Format the case studies
+                const formattedCaseStudies: FormattedCaseStudy[] = await Promise.all(
+                    data.map(async (cs) => {
+                        let parsed = { title: '', description: '', department: '', learning_outcomes: '' };
+                        
+                        try {
+                            parsed = JSON.parse(cs.text);
+                        } catch (e) {
+                            console.error(`Could not parse case study text for id ${cs.id}`, e);
+                        }
+                        
+                        // Try to fetch prediction for this case study
+                        let prediction = null;
+                        try {
+                            prediction = await fetchPredictionForCaseStudy(cs.id);
+                        } catch (e) {
+                            console.error(`Error fetching prediction for case study ${cs.id}`, e);
+                        }
+                        
+                        return {
+                            id: cs.id,
+                            title: parsed.title || `Case Study ${cs.id.slice(0, 8)}`,
+                            description: parsed.description || 'No description provided',
+                            status: (cs.status as CaseStudyStatus) || 'draft',
+                            department: parsed.department || 'Unknown Department',
+                            date: new Date(cs.created_at || Date.now()).toISOString().split('T')[0],
+                            learning_outcomes: parsed.learning_outcomes || 'No learning outcomes provided',
+                            grade: prediction?.grade || null,
+                            feedback: null, // We don't have feedback in the database yet
+                            student_id: cs.student_id
+                        };
+                    })
+                );
+                
+                setCaseStudies(formattedCaseStudies);
+            } catch (error) {
+                console.error("Error loading case studies:", error);
+                toast({
+                    title: "Error",
+                    description: "Failed to load case studies. Using mock data instead.",
+                    variant: "destructive"
+                });
+                // Fall back to mock data
+                setCaseStudies(mockCaseStudies);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadCaseStudies();
+    }, [toast]);
 
     const filteredCaseStudies = activeTab === 'all'
-        ? mockCaseStudies
-        : mockCaseStudies.filter(study => study.status === activeTab);
+        ? caseStudies
+        : caseStudies.filter(study => study.status === activeTab);
 
     const counts = {
-        all: mockCaseStudies.length,
-        draft: mockCaseStudies.filter(study => study.status === 'draft').length,
-        submitted: mockCaseStudies.filter(study => study.status === 'submitted').length,
-        reviewed: mockCaseStudies.filter(study => study.status === 'reviewed').length,
-        approved: mockCaseStudies.filter(study => study.status === 'approved').length
+        all: caseStudies.length,
+        draft: caseStudies.filter(study => study.status === 'draft').length,
+        submitted: caseStudies.filter(study => study.status === 'submitted').length,
+        reviewed: caseStudies.filter(study => study.status === 'reviewed').length,
+        approved: caseStudies.filter(study => study.status === 'approved').length
     };
 
-    const handleViewDetails = (caseStudy: any) => {
+    const handleViewDetails = (caseStudy: FormattedCaseStudy) => {
         setSelectedCase(caseStudy);
         setViewDetailsOpen(true);
     };
@@ -99,17 +175,78 @@ const CaseStudiesPage = () => {
     };
 
     const handleEditCaseStudy = (id: string) => {
-        const caseToEdit = mockCaseStudies.find(cs => cs.id === id);
+        const caseToEdit = caseStudies.find(cs => cs.id === id);
         setFormMode('edit');
         setEditData(caseToEdit);
         setFormOpen(true);
     };
 
-    const handleSubmitCaseStudy = (id: string) => {
-        toast({
-            title: "Case Study Submitted",
-            description: "Your case study has been submitted for review.",
-        });
+    const handleSubmitCaseStudy = async (id: string) => {
+        try {
+            await updateCaseStudy(id, { status: 'submitted' });
+            
+            // Update the local state
+            setCaseStudies(prev => 
+                prev.map(cs => cs.id === id ? { ...cs, status: 'submitted' as CaseStudyStatus } : cs)
+            );
+            
+            toast({
+                title: "Case Study Submitted",
+                description: "Your case study has been submitted for review.",
+            });
+        } catch (error) {
+            console.error("Error submitting case study:", error);
+            toast({
+                title: "Error",
+                description: "Failed to submit case study. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleCaseStudySuccess = async () => {
+        // Refetch case studies to get the updated list
+        try {
+            const data = await fetchCaseStudies();
+            
+            // Format the case studies (same logic as in useEffect)
+            const formattedCaseStudies: FormattedCaseStudy[] = await Promise.all(
+                data.map(async (cs) => {
+                    let parsed = { title: '', description: '', department: '', learning_outcomes: '' };
+                    
+                    try {
+                        parsed = JSON.parse(cs.text);
+                    } catch (e) {
+                        console.error(`Could not parse case study text for id ${cs.id}`, e);
+                    }
+                    
+                    // Try to fetch prediction for this case study
+                    let prediction = null;
+                    try {
+                        prediction = await fetchPredictionForCaseStudy(cs.id);
+                    } catch (e) {
+                        console.error(`Error fetching prediction for case study ${cs.id}`, e);
+                    }
+                    
+                    return {
+                        id: cs.id,
+                        title: parsed.title || `Case Study ${cs.id.slice(0, 8)}`,
+                        description: parsed.description || 'No description provided',
+                        status: (cs.status as CaseStudyStatus) || 'draft',
+                        department: parsed.department || 'Unknown Department',
+                        date: new Date(cs.created_at || Date.now()).toISOString().split('T')[0],
+                        learning_outcomes: parsed.learning_outcomes || 'No learning outcomes provided',
+                        grade: prediction?.grade || null,
+                        feedback: null,
+                        student_id: cs.student_id
+                    };
+                })
+            );
+            
+            setCaseStudies(formattedCaseStudies);
+        } catch (error) {
+            console.error("Error reloading case studies:", error);
+        }
     };
 
     return (
@@ -189,73 +326,79 @@ const CaseStudiesPage = () => {
                     </TabsList>
 
                     <TabsContent value={activeTab} className="mt-6">
-                        <div className="grid gap-6 md:grid-cols-2">
-                            {filteredCaseStudies.map((caseStudy) => (
-                                <Card key={caseStudy.id} className="animate-fade-in">
-                                    <CardContent className="p-5">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{caseStudy.title}</h3>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <Hospital className="h-3 w-3 text-gray-400" />
-                                                    <p className="text-sm text-gray-600">{caseStudy.department}</p>
+                        {loading ? (
+                            <div className="text-center py-8">Loading case studies...</div>
+                        ) : filteredCaseStudies.length === 0 ? (
+                            <div className="text-center py-8">No case studies found</div>
+                        ) : (
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {filteredCaseStudies.map((caseStudy) => (
+                                    <Card key={caseStudy.id} className="animate-fade-in">
+                                        <CardContent className="p-5">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900">{caseStudy.title}</h3>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Hospital className="h-3 w-3 text-gray-400" />
+                                                        <p className="text-sm text-gray-600">{caseStudy.department}</p>
+                                                    </div>
                                                 </div>
+                                                <Badge className={statusColors[caseStudy.status]}>
+                                                    {caseStudy.status.charAt(0).toUpperCase() + caseStudy.status.slice(1)}
+                                                </Badge>
                                             </div>
-                                            <Badge className={statusColors[caseStudy.status]}>
-                                                {caseStudy.status.charAt(0).toUpperCase() + caseStudy.status.slice(1)}
-                                            </Badge>
-                                        </div>
 
-                                        <p className="text-sm text-gray-600 mt-4 line-clamp-2">
-                                            {caseStudy.description}
-                                        </p>
+                                            <p className="text-sm text-gray-600 mt-4 line-clamp-2">
+                                                {caseStudy.description}
+                                            </p>
 
-                                        <div className="flex items-center text-xs text-gray-500 mt-4">
-                                            <Calendar className="mr-1 h-3 w-3" />
-                                            <span>Created on {caseStudy.date}</span>
-                                        </div>
-
-                                        {caseStudy.grade && (
-                                            <div className="mt-4 mb-4">
-                                                <span className="px-2 py-1 bg-clinical-100 text-clinical-800 rounded-full text-xs font-medium">
-                                                    Grade: {caseStudy.grade}
-                                                </span>
+                                            <div className="flex items-center text-xs text-gray-500 mt-4">
+                                                <Calendar className="mr-1 h-3 w-3" />
+                                                <span>Created on {caseStudy.date}</span>
                                             </div>
-                                        )}
 
-                                        <div className="flex justify-end gap-2 mt-4">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleViewDetails(caseStudy)}
-                                            >
-                                                View Details
-                                            </Button>
-
-                                            {caseStudy.status === 'draft' && (
-                                                <>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleEditCaseStudy(caseStudy.id)}
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                    <Button
-                                                        variant="default"
-                                                        size="sm"
-                                                        className="bg-clinical-600 hover:bg-clinical-700"
-                                                        onClick={() => handleSubmitCaseStudy(caseStudy.id)}
-                                                    >
-                                                        Submit
-                                                    </Button>
-                                                </>
+                                            {caseStudy.grade && (
+                                                <div className="mt-4 mb-4">
+                                                    <span className="px-2 py-1 bg-clinical-100 text-clinical-800 rounded-full text-xs font-medium">
+                                                        Grade: {caseStudy.grade}
+                                                    </span>
+                                                </div>
                                             )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+
+                                            <div className="flex justify-end gap-2 mt-4">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleViewDetails(caseStudy)}
+                                                >
+                                                    View Details
+                                                </Button>
+
+                                                {caseStudy.status === 'draft' && (
+                                                    <>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleEditCaseStudy(caseStudy.id)}
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                        <Button
+                                                            variant="default"
+                                                            size="sm"
+                                                            className="bg-clinical-600 hover:bg-clinical-700"
+                                                            onClick={() => handleSubmitCaseStudy(caseStudy.id)}
+                                                        >
+                                                            Submit
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
                     </TabsContent>
                 </Tabs>
             </div>
@@ -349,6 +492,7 @@ const CaseStudiesPage = () => {
                 onOpenChange={setFormOpen}
                 initialData={editData}
                 mode={formMode}
+                onSuccess={handleCaseStudySuccess}
             />
         </Layout>
     );
