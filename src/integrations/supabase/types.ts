@@ -16,7 +16,6 @@ export type Database = {
           department: string
           id: string
           marked_by: string | null
-          marker_role: Database["public"]["Enums"]["user_role"]
           remarks: string | null
           status: Database["public"]["Enums"]["attendance_status"]
           student_id: string
@@ -29,7 +28,6 @@ export type Database = {
           department: string
           id?: string
           marked_by?: string | null
-          marker_role: Database["public"]["Enums"]["user_role"]
           remarks?: string | null
           status?: Database["public"]["Enums"]["attendance_status"]
           student_id: string
@@ -42,7 +40,6 @@ export type Database = {
           department?: string
           id?: string
           marked_by?: string | null
-          marker_role?: Database["public"]["Enums"]["user_role"]
           remarks?: string | null
           status?: Database["public"]["Enums"]["attendance_status"]
           student_id?: string
@@ -58,6 +55,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      case_studies: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          id: string
+          processed: boolean | null
+          status: string | null
+          student_id: string
+          submitted_at: string | null
+          text: string
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          id: string
+          processed?: boolean | null
+          status?: string | null
+          student_id: string
+          submitted_at?: string | null
+          text: string
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          processed?: boolean | null
+          status?: string | null
+          student_id?: string
+          submitted_at?: string | null
+          text?: string
+        }
+        Relationships: []
       }
       departments: {
         Row: {
@@ -79,6 +109,67 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      extracted_features: {
+        Row: {
+          case_study_id: string
+          created_at: string | null
+          features: Json
+          id: string
+          processed: boolean | null
+        }
+        Insert: {
+          case_study_id: string
+          created_at?: string | null
+          features: Json
+          id?: string
+          processed?: boolean | null
+        }
+        Update: {
+          case_study_id?: string
+          created_at?: string | null
+          features?: Json
+          id?: string
+          processed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracted_features_case_study_id_fkey"
+            columns: ["case_study_id"]
+            isOneToOne: false
+            referencedRelation: "case_studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      predictions: {
+        Row: {
+          case_study_id: string
+          created_at: string | null
+          grade: string
+          id: string
+        }
+        Insert: {
+          case_study_id: string
+          created_at?: string | null
+          grade: string
+          id?: string
+        }
+        Update: {
+          case_study_id?: string
+          created_at?: string | null
+          grade?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_case_study_id_fkey"
+            columns: ["case_study_id"]
+            isOneToOne: false
+            referencedRelation: "case_studies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -116,15 +207,17 @@ export type Database = {
           name: string
           updated_at: string | null
           user_id: string | null
+          year: number
         }
         Insert: {
           created_at?: string | null
-          department: string
+          department?: string
           email: string
           id?: string
-          name: string
+          name?: string
           updated_at?: string | null
           user_id?: string | null
+          year?: number
         }
         Update: {
           created_at?: string | null
@@ -134,6 +227,7 @@ export type Database = {
           name?: string
           updated_at?: string | null
           user_id?: string | null
+          year?: number
         }
         Relationships: []
       }
@@ -146,9 +240,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      update_student_years: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       attendance_status: "Present" | "Absent" | "Late"
+      student_year: "1st" | "2nd" | "3rd" | "4th"
       user_role:
         | "student"
         | "tutor"

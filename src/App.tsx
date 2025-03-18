@@ -23,7 +23,9 @@ import CaseStudiesPage from './pages/CaseStudiesPage';
 import Chatbot from './pages/Chatbot';
 import AboutPage from './pages/About';
 import ContactPage from './pages/Contact';
-
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const queryClient = new QueryClient();
 
@@ -52,6 +54,9 @@ const App = () => (
             <Route path="/chatbot" element={<Chatbot />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
