@@ -121,9 +121,6 @@ function Chatbot() {
                     <p className="text-sm text-gray-600 text-center">
                         Disclaimer: This AI is not a substitute for professional medical advice. Always consult a qualified healthcare provider for medical concerns.
                     </p>
-                    <p className="text-sm mt-2">
-                        &copy; 2024 QnsAI Ltd. All rights reserved.
-                    </p>
                 </div>
             </div>
         </div>
