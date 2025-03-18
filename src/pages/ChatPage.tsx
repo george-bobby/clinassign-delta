@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Info } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { 
@@ -160,6 +160,23 @@ const ChatPage: React.FC = () => {
       if (!result) {
         throw new Error('Failed to send message');
       }
+      
+      // Add the new message to the messages list
+      setMessages(prev => [...prev, result]);
+      
+      // Update the last message in conversations list
+      setConversations(prev => 
+        prev.map(conv => {
+          if (conv.id === selectedConversation.id) {
+            return {
+              ...conv,
+              last_message: text,
+              last_message_time: result.timestamp
+            };
+          }
+          return conv;
+        })
+      );
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -212,10 +229,36 @@ const ChatPage: React.FC = () => {
     }
   };
   
+  const getRoleSpecificTitle = () => {
+    if (!user) return "Chat";
+    
+    switch (user.role) {
+      case 'student':
+        return "Chat with Tutors";
+      case 'tutor':
+        return "Chat with Students";
+      default:
+        return "Chat";
+    }
+  };
+  
+  const getRoleSpecificDescription = () => {
+    if (!user) return "";
+    
+    switch (user.role) {
+      case 'student':
+        return "Connect with your tutors for questions and guidance";
+      case 'tutor':
+        return "Connect with your students to provide guidance and answer questions";
+      default:
+        return "Connect with other users";
+    }
+  };
+  
   return (
     <Layout>
       <div className="container mx-auto py-6">
-        <h1 className="text-2xl font-bold mb-6">Chat</h1>
+        <h1 className="text-2xl font-bold mb-6">{getRoleSpecificTitle()}</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Chat list sidebar */}
@@ -261,6 +304,11 @@ const ChatPage: React.FC = () => {
                     'Select or create a conversation'
                   )}
                 </CardTitle>
+                {selectedConversation && (
+                  <CardDescription>
+                    {user?.role === 'student' ? 'Conversation with tutor' : 'Conversation with student'}
+                  </CardDescription>
+                )}
               </CardHeader>
               <Separator />
               <CardContent className="p-0">
@@ -282,9 +330,28 @@ const ChatPage: React.FC = () => {
                   </>
                 ) : (
                   <div className="flex flex-col justify-center items-center h-[400px] p-4 text-center">
-                    <p className="text-muted-foreground mb-4">
-                      Select a conversation or create a new one to start chatting
-                    </p>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4 max-w-md">
+                      <div className="flex items-start">
+                        <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
+                        <div>
+                          <h3 className="font-medium text-blue-600 dark:text-blue-400">
+                            {user?.role === 'student' 
+                              ? "Connect with Your Tutors" 
+                              : user?.role === 'tutor'
+                                ? "Connect with Your Students"
+                                : "Start a Conversation"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {user?.role === 'student' 
+                              ? "Use this chat to ask questions, schedule additional consultations, or get feedback on your clinical work."
+                              : user?.role === 'tutor'
+                                ? "Use this chat to provide guidance, answer questions, and give feedback to your students."
+                                : "Select an existing conversation or create a new one to start chatting."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <Button 
                       onClick={() => setIsNewConversationOpen(true)}
                     >

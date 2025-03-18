@@ -47,44 +47,113 @@ const NewConversationDialog: React.FC<NewConversationDialogProps> = ({
       try {
         let userData: Profile[] = [];
         
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*');
-          
-          if (error) throw error;
-          
-          if (data) {
-            userData = data.filter(otherUser => 
-              otherUser.id !== user.id && canChatWith(user.role, otherUser.role)
-            );
-          }
-        } catch (error) {
-          console.error('Error fetching users from database:', error);
+        // For demo purposes, create mock users based on the current user's role
+        if (user.role === 'student') {
+          // Students can chat with tutors
           userData = [
             { 
-              id: '1', 
-              name: 'John Tutor', 
-              email: 'tutor@example.com', 
+              id: 'tutor-1', 
+              name: 'Dr. Sarah Johnson', 
+              email: 'sarah.johnson@example.com', 
               role: 'tutor',
               avatar_url: null,
               created_at: '',
               updated_at: ''
             },
             { 
-              id: '2', 
-              name: 'Alice Nursing Head', 
-              email: 'nursing@example.com', 
-              role: 'nursing_head',
+              id: 'tutor-2', 
+              name: 'Prof. Michael Chen', 
+              email: 'michael.chen@example.com', 
+              role: 'tutor',
               avatar_url: null,
               created_at: '',
               updated_at: ''
             },
             { 
-              id: '3', 
-              name: 'Bob Hospital Admin', 
-              email: 'hospital@example.com', 
-              role: 'hospital_admin',
+              id: 'tutor-3', 
+              name: 'Dr. Lisa Rodriguez', 
+              email: 'lisa.rodriguez@example.com', 
+              role: 'tutor',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            },
+            { 
+              id: 'tutor-4', 
+              name: 'Prof. David Thompson', 
+              email: 'david.thompson@example.com', 
+              role: 'tutor',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            }
+          ];
+        } else if (user.role === 'tutor') {
+          // Tutors can chat with students
+          userData = [
+            { 
+              id: 'student-1', 
+              name: 'Emma Davis', 
+              email: 'emma.davis@example.com', 
+              role: 'student',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            },
+            { 
+              id: 'student-2', 
+              name: 'James Wilson', 
+              email: 'james.wilson@example.com', 
+              role: 'student',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            },
+            { 
+              id: 'student-3', 
+              name: 'Sophia Martinez', 
+              email: 'sophia.martinez@example.com', 
+              role: 'student',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            },
+            { 
+              id: 'student-4', 
+              name: 'Noah Thompson', 
+              email: 'noah.thompson@example.com', 
+              role: 'student',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            },
+            { 
+              id: 'student-5', 
+              name: 'Olivia Brown', 
+              email: 'olivia.brown@example.com', 
+              role: 'student',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            }
+          ];
+        } else {
+          // Other roles can see both students and tutors
+          userData = [
+            { 
+              id: 'tutor-1', 
+              name: 'Dr. Sarah Johnson', 
+              email: 'sarah.johnson@example.com', 
+              role: 'tutor',
+              avatar_url: null,
+              created_at: '',
+              updated_at: ''
+            },
+            { 
+              id: 'student-1', 
+              name: 'Emma Davis', 
+              email: 'emma.davis@example.com', 
+              role: 'student',
               avatar_url: null,
               created_at: '',
               updated_at: ''
@@ -187,7 +256,11 @@ const NewConversationDialog: React.FC<NewConversationDialogProps> = ({
         <DialogHeader>
           <DialogTitle>New Conversation</DialogTitle>
           <DialogDescription>
-            Select participants to start a conversation.
+            {user?.role === 'student' 
+              ? "Select a tutor to start a conversation with."
+              : user?.role === 'tutor'
+                ? "Select a student to start a conversation with."
+                : "Select participants to start a conversation."}
           </DialogDescription>
         </DialogHeader>
         
@@ -213,7 +286,11 @@ const NewConversationDialog: React.FC<NewConversationDialogProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label>Select Participants</Label>
+            <Label>
+              {user?.role === 'student' ? 'Select Tutors' : 
+               user?.role === 'tutor' ? 'Select Students' : 
+               'Select Participants'}
+            </Label>
             <ScrollArea className="h-[200px] border rounded-md p-2">
               {isLoading ? (
                 <div className="flex justify-center items-center h-full">
