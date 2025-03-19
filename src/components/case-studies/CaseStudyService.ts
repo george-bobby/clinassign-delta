@@ -63,6 +63,44 @@ export async function fetchPredictionForCaseStudy(caseStudyId: string) {
   return data;
 }
 
+// Request ML prediction for a case study
+export async function requestMLPrediction(caseStudyId: string) {
+  try {
+    // First trigger the feature extraction process
+    const extractResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ML-prediction/process_case_studies`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({ case_study_ids: [caseStudyId] })
+    });
+    
+    if (!extractResponse.ok) {
+      throw new Error(`Failed to trigger feature extraction: ${extractResponse.statusText}`);
+    }
+    
+    // Then trigger the ML model training/prediction
+    const trainResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ML-prediction/train_model`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      }
+    });
+    
+    if (!trainResponse.ok) {
+      throw new Error(`Failed to trigger ML prediction: ${trainResponse.statusText}`);
+    }
+    
+    // Return success response
+    return { success: true, message: "ML prediction process initiated successfully" };
+  } catch (error) {
+    console.error("Error requesting ML prediction:", error);
+    throw error;
+  }
+}
+
 // Submit a new case study
 export async function submitCaseStudy(caseStudyData: { 
   title: string;
@@ -95,6 +133,14 @@ export async function submitCaseStudy(caseStudyData: {
   if (error) {
     console.error("Error submitting case study:", error);
     throw error;
+  }
+
+  // Automatically request ML prediction for the new case study
+  try {
+    await requestMLPrediction(data.id);
+  } catch (predictionError) {
+    console.error("Warning: ML prediction request failed:", predictionError);
+    // We don't throw the error here since the case study was successfully created
   }
 
   return data;
@@ -158,6 +204,16 @@ export async function updateCaseStudy(id: string, caseStudyData: {
   if (error) {
     console.error(`Error updating case study ${id}:`, error);
     throw error;
+  }
+
+  // Request a new ML prediction if the case study content was changed
+  if (caseStudyData.title || caseStudyData.description || caseStudyData.learning_outcomes) {
+    try {
+      await requestMLPrediction(id);
+    } catch (predictionError) {
+      console.error("Warning: ML prediction request failed after update:", predictionError);
+      // We don't throw the error here since the case study was successfully updated
+    }
   }
 
   return data;
