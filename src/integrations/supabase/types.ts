@@ -9,49 +9,34 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      attendance_records: {
+      attendance: {
         Row: {
-          created_at: string | null
-          date: string
-          department: string
           id: string
-          marked_by: string | null
-          remarks: string | null
-          status: Database["public"]["Enums"]["attendance_status"]
-          student_id: string
-          student_name: string
-          updated_at: string | null
+          marked_at: string | null
+          schedule_id: string | null
+          status: string | null
+          student_id: string | null
         }
         Insert: {
-          created_at?: string | null
-          date: string
-          department: string
           id?: string
-          marked_by?: string | null
-          remarks?: string | null
-          status?: Database["public"]["Enums"]["attendance_status"]
-          student_id: string
-          student_name: string
-          updated_at?: string | null
+          marked_at?: string | null
+          schedule_id?: string | null
+          status?: string | null
+          student_id?: string | null
         }
         Update: {
-          created_at?: string | null
-          date?: string
-          department?: string
           id?: string
-          marked_by?: string | null
-          remarks?: string | null
-          status?: Database["public"]["Enums"]["attendance_status"]
-          student_id?: string
-          student_name?: string
-          updated_at?: string | null
+          marked_at?: string | null
+          schedule_id?: string | null
+          status?: string | null
+          student_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_records_student_id_fkey"
+            foreignKeyName: "fk_student"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -61,7 +46,7 @@ export type Database = {
           created_at: string | null
           error: string | null
           id: string
-          processed: boolean | null
+          processed: boolean
           status: string | null
           student_id: string
           submitted_at: string | null
@@ -71,7 +56,7 @@ export type Database = {
           created_at?: string | null
           error?: string | null
           id: string
-          processed?: boolean | null
+          processed?: boolean
           status?: string | null
           student_id: string
           submitted_at?: string | null
@@ -81,7 +66,7 @@ export type Database = {
           created_at?: string | null
           error?: string | null
           id?: string
-          processed?: boolean | null
+          processed?: boolean
           status?: string | null
           student_id?: string
           submitted_at?: string | null
@@ -91,21 +76,27 @@ export type Database = {
       }
       departments: {
         Row: {
+          available_slots: number
           created_at: string | null
           id: string
           name: string
+          total_capacity: number
           updated_at: string | null
         }
         Insert: {
+          available_slots?: number
           created_at?: string | null
           id?: string
           name: string
+          total_capacity?: number
           updated_at?: string | null
         }
         Update: {
+          available_slots?: number
           created_at?: string | null
           id?: string
           name?: string
+          total_capacity?: number
           updated_at?: string | null
         }
         Relationships: []
@@ -116,21 +107,21 @@ export type Database = {
           created_at: string | null
           features: Json
           id: string
-          processed: boolean | null
+          processed: boolean
         }
         Insert: {
           case_study_id: string
           created_at?: string | null
           features: Json
           id?: string
-          processed?: boolean | null
+          processed?: boolean
         }
         Update: {
           case_study_id?: string
           created_at?: string | null
           features?: Json
           id?: string
-          processed?: boolean | null
+          processed?: boolean
         }
         Relationships: [
           {
@@ -141,6 +132,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       predictions: {
         Row: {
@@ -198,10 +213,100 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_tracker: {
+        Row: {
+          completed_hours: number
+          created_at: string | null
+          id: string
+          pending_hours: number
+          student_id: string
+          total_hours: number
+          updated_at: string | null
+        }
+        Insert: {
+          completed_hours?: number
+          created_at?: string | null
+          id?: string
+          pending_hours?: number
+          student_id: string
+          total_hours: number
+          updated_at?: string | null
+        }
+        Update: {
+          completed_hours?: number
+          created_at?: string | null
+          id?: string
+          pending_hours?: number
+          student_id?: string
+          total_hours?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_tracker_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          created_at: string | null
+          date: string
+          department_id: string
+          id: string
+          rescheduled_to: string | null
+          shift_type: string
+          status: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          department_id: string
+          id?: string
+          rescheduled_to?: string | null
+          shift_type: string
+          status: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          department_id?: string
+          id?: string
+          rescheduled_to?: string | null
+          shift_type?: string
+          status?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           created_at: string | null
           department: string
+          department_id: string | null
           email: string
           id: string
           name: string
@@ -212,6 +317,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           department?: string
+          department_id?: string | null
           email: string
           id?: string
           name?: string
@@ -222,6 +328,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           department?: string
+          department_id?: string | null
           email?: string
           id?: string
           name?: string
@@ -229,7 +336,15 @@ export type Database = {
           user_id?: string | null
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_department"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -247,6 +362,7 @@ export type Database = {
     }
     Enums: {
       attendance_status: "Present" | "Absent" | "Late"
+      case_status: "submitted" | "processed"
       student_year: "1st" | "2nd" | "3rd" | "4th"
       user_role:
         | "student"
@@ -261,27 +377,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -289,20 +407,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -310,20 +430,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -331,21 +453,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -354,6 +478,23 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      attendance_status: ["Present", "Absent", "Late"],
+      case_status: ["submitted", "processed"],
+      student_year: ["1st", "2nd", "3rd", "4th"],
+      user_role: [
+        "student",
+        "tutor",
+        "nursing_head",
+        "hospital_admin",
+        "principal",
+      ],
+    },
+  },
+} as const
