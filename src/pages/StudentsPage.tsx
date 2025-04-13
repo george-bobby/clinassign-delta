@@ -14,7 +14,8 @@ import {
   Eye,
   Edit,
   Trash2,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { 
   Table, 
@@ -36,12 +37,30 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  year: number;
+  created_at: string;
+}
+
+interface Stats {
+  totalStudents: number;
+  totalClinicalHours: number;
+  totalCaseStudies: number;
+}
 
 const StudentsPage = () => {
   const { toast } = useToast();
-  const [students, setStudents] = useState([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats>({
     totalStudents: 0,
     totalClinicalHours: 0,
     totalCaseStudies: 0
@@ -54,6 +73,7 @@ const StudentsPage = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       // Fetch students data
       const { data: studentsData, error: studentsError } = await supabase
@@ -77,7 +97,7 @@ const StudentsPage = () => {
         totalStudents: studentsData?.length || 0
       }));
 
-      // Fetch additional statistics - this could be optimized with more direct queries
+      // Fetch additional statistics from schedule_tracker table
       const { data: scheduleData, error: scheduleError } = await supabase
         .from('schedule_tracker')
         .select('completed_hours')
@@ -91,6 +111,7 @@ const StudentsPage = () => {
         }));
       }
 
+      // Count case studies
       const { count: caseStudiesCount, error: caseStudiesError } = await supabase
         .from('case_studies')
         .select('id', { count: 'exact', head: true });
@@ -101,8 +122,9 @@ const StudentsPage = () => {
           totalCaseStudies: caseStudiesCount || 0
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching students data:', error);
+      setError(error.message || 'Failed to load students data');
       toast({
         title: 'Error',
         description: 'Failed to load students data. Please try again later.',
@@ -142,7 +164,10 @@ const StudentsPage = () => {
         title: 'Student Removed',
         description: 'The student has been successfully removed from the system.',
       });
-    } catch (error) {
+
+      // Refetch stats to update counts
+      fetchStudents();
+    } catch (error: any) {
       console.error('Error removing student:', error);
       toast({
         title: 'Error',
@@ -159,7 +184,8 @@ const StudentsPage = () => {
     });
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not available';
     try {
       return format(parseISO(dateString), 'MMM d, yyyy');
     } catch (error) {
@@ -167,9 +193,13 @@ const StudentsPage = () => {
     }
   };
 
-  const getInitials = (name) => {
+  const getInitials = (name: string | null) => {
     if (!name) return 'ST';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const handleRefresh = () => {
+    fetchStudents();
   };
 
   return (
@@ -178,9 +208,9 @@ const StudentsPage = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Students Management</h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={handleRefresh}>
               <Search size={16} />
-              <span>Search</span>
+              <span>Refresh</span>
             </Button>
             <Button onClick={handleAddStudent} className="flex items-center gap-2">
               <UserPlus size={16} />
@@ -236,6 +266,15 @@ const StudentsPage = () => {
             <CardDescription>Manage student profiles and assignments</CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {loading ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
