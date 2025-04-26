@@ -28,9 +28,7 @@ interface AttendanceRecord {
   id: string;
   student_id: string;
   status: 'present' | 'absent' | 'late';
-  date: string;
-  marked_by: string;
-  marker_role: string;
+  marked_at: string;
 }
 
 export default function AttendancePage() {
@@ -62,13 +60,16 @@ export default function AttendancePage() {
   const fetchTodayAttendance = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
+      // Use the correct table name from the schema
       const { data, error } = await supabase
-        .from('attendance_records')
+        .from('attendance')
         .select('*')
-        .eq('date', today);
+        .gte('marked_at', today);
 
       if (error) throw error;
-      setAttendanceRecords(data || []);
+      
+      // Ensure we cast the data to our expected type
+      setAttendanceRecords(data as AttendanceRecord[] || []);
     } catch (error: any) {
       console.error('Error fetching attendance:', error);
       toast({
@@ -91,7 +92,8 @@ export default function AttendancePage() {
   };
 
   const getStudentAttendanceStatus = (studentId: string) => {
-    return attendanceRecords.find(record => record.student_id === studentId)?.status || null;
+    const record = attendanceRecords.find(record => record.student_id === studentId);
+    return record ? record.status : null;
   };
 
   if (loading) {

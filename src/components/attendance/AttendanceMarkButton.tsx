@@ -39,13 +39,11 @@ export function AttendanceMarkButton({
       setIsSubmitting(true);
       
       const { error } = await supabase
-        .from('attendance_records')
+        .from('attendance')
         .insert({
           student_id: studentId,
           status: status,
-          marked_by: user.id,
-          marker_role: user.role,
-          remarks: `Marked as ${status} by ${user.role}`,
+          marked_at: new Date().toISOString(),
         });
 
       if (error) throw error;
@@ -68,11 +66,18 @@ export function AttendanceMarkButton({
     }
   };
 
+  // Fix variant by using only supported values
+  const getButtonVariant = () => {
+    if (status === 'present') return 'default';
+    if (status === 'late') return 'secondary';
+    return 'destructive';
+  };
+
   return (
     <Button 
       onClick={handleMarkAttendance} 
       disabled={isSubmitting}
-      variant={status === 'present' ? 'default' : status === 'late' ? 'warning' : 'destructive'}
+      variant={getButtonVariant()}
       size="sm"
     >
       {isSubmitting ? (
