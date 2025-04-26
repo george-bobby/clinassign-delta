@@ -1,223 +1,183 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import Navbar from '@/components/layout/Navbar';
-import Sidebar from '@/components/layout/Sidebar';
-import AttendanceTable from '@/components/attendance/AttendanceTable';
-import AttendanceFilters from '@/components/attendance/AttendanceFilters';
-import AttendanceReports from '@/components/attendance/AttendanceReports';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Navigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import Layout from '@/components/layout/Layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AttendanceMarkButton } from '@/components/attendance/AttendanceMarkButton';
+import { Loader2 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-const AttendancePage = () => {
-  const { user, loading, isRole } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [isLoadingData, setIsLoadingData] = useState(false);
-  const [filterParams, setFilterParams] = useState({
-    date: null,
-    department: '',
-    studentId: '',
-    status: '',
-  });
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  year: number;
+}
+
+interface AttendanceRecord {
+  id: string;
+  student_id: string;
+  status: 'present' | 'absent' | 'late';
+  date: string;
+  marked_by: string;
+  marker_role: string;
+}
+
+export default function AttendancePage() {
+  const { user } = useAuth();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  
-  const canMarkAttendance = user && (isRole('tutor') || isRole('nursing_head') || isRole('hospital_admin') || isRole('principal'));
-  
-  useEffect(() => {
-    if (user) {
-      fetchAttendanceData();
-    }
-  }, [user, filterParams]);
 
-  useEffect(() => {
-    // Set up realtime subscription for attendance records
-    if (user) {
-      const channel = supabase
-        .channel('public:attendance_records')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'attendance_records'
-        }, (payload) => {
-          console.log('Realtime update:', payload);
-          // Refresh data when changes occur
-          fetchAttendanceData();
-          
-          // Show notification based on the event type
-          if (payload.eventType === 'INSERT') {
-            toast({
-              title: 'New Attendance Record',
-              description: 'A new attendance record has been added.',
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            toast({
-              title: 'Attendance Updated',
-              description: 'An attendance record has been updated.',
-            });
-          } else if (payload.eventType === 'DELETE') {
-            toast({
-              title: 'Attendance Deleted',
-              description: 'An attendance record has been deleted.',
-            });
-          }
-        })
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user, toast]);
-
-  const fetchAttendanceData = async () => {
+  const fetchStudents = async () => {
     try {
-      setIsLoadingData(true);
-      
-      // Build query based on filters
-      let query = supabase.from('attendance_records').select('*');
-      
-      // Apply filters if they exist
-      if (filterParams.date) {
-        query = query.eq('date', filterParams.date);
-      }
-      
-      if (filterParams.department) {
-        query = query.eq('department', filterParams.department);
-      }
-      
-      if (filterParams.status) {
-        query = query.eq('status', filterParams.status);
-      }
-      
-      // For students, only show their own records
-      if (isRole('student') && user) {
-        // First get the student record for this user
-        const { data: studentData } = await supabase
-          .from('students')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (studentData) {
-          query = query.eq('student_id', studentData.id);
-        }
-      }
-      
-      // If specific student filter is applied
-      if (filterParams.studentId) {
-        query = query.eq('student_id', filterParams.studentId);
-      }
-      
-      // Order by date descending
-      query = query.order('date', { ascending: false });
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching attendance data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load attendance data.',
-          variant: 'destructive',
-        });
-      } else {
-        setAttendanceData(data || []);
-      }
-    } catch (error) {
-      console.error('Attendance fetch error:', error);
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error: any) {
+      console.error('Error fetching students:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred when loading attendance data.',
+        description: 'Failed to load students.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const fetchTodayAttendance = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('date', today);
+
+      if (error) throw error;
+      setAttendanceRecords(data || []);
+    } catch (error: any) {
+      console.error('Error fetching attendance:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load attendance records.',
         variant: 'destructive',
       });
     } finally {
-      setIsLoadingData(false);
+      setLoading(false);
     }
   };
 
-  const handleFilterChange = (newFilters) => {
-    setFilterParams(prev => ({ ...prev, ...newFilters }));
+  useEffect(() => {
+    fetchStudents();
+    fetchTodayAttendance();
+  }, []);
+
+  const handleAttendanceMarked = () => {
+    fetchTodayAttendance();
   };
-  
-  // Show loading state
+
+  const getStudentAttendanceStatus = (studentId: string) => {
+    return attendanceRecords.find(record => record.student_id === studentId)?.status || null;
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse">
-          <div className="h-8 w-48 bg-gray-200 rounded-md mb-4"></div>
-          <div className="h-4 w-32 bg-gray-200 rounded-md"></div>
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-      </div>
+      </Layout>
     );
   }
-  
-  // Redirect if not logged in
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-  
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      
-      <div className="flex">
-        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-        
-        <main className="flex-1 transition-all duration-300 ease-in-out md:ml-64">
-          <div className="container mx-auto p-4 md:p-6 lg:p-8 animate-slide-in">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Attendance Management</h1>
-              <p className="text-gray-500 mt-2">
-                {canMarkAttendance 
-                  ? "Track, mark, and manage student attendance records" 
-                  : "View your attendance records"}
-              </p>
-            </div>
-            
-            <Tabs defaultValue="records" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="records">Attendance Records</TabsTrigger>
-                {canMarkAttendance && <TabsTrigger value="mark">Mark Attendance</TabsTrigger>}
-                {canMarkAttendance && <TabsTrigger value="reports">Reports</TabsTrigger>}
-              </TabsList>
-              
-              <TabsContent value="records" className="space-y-4">
-                <AttendanceFilters onFilterChange={handleFilterChange} />
-                <AttendanceTable 
-                  canMark={canMarkAttendance} 
-                  data={attendanceData} 
-                  isLoading={isLoadingData}
-                  onDataChange={fetchAttendanceData}
-                />
-              </TabsContent>
-              
-              {canMarkAttendance && (
-                <TabsContent value="mark" className="space-y-4">
-                  <AttendanceFilters showMarkControls onFilterChange={handleFilterChange} />
-                  <AttendanceTable 
-                    canMark 
-                    markerView 
-                    data={attendanceData} 
-                    isLoading={isLoadingData}
-                    onDataChange={fetchAttendanceData}
-                  />
-                </TabsContent>
-              )}
-              
-              {canMarkAttendance && (
-                <TabsContent value="reports" className="space-y-4">
-                  <AttendanceReports />
-                </TabsContent>
-              )}
-            </Tabs>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-};
 
-export default AttendancePage;
+  return (
+    <Layout>
+      <div className="container mx-auto py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Attendance Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Year</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map((student) => {
+                  const currentStatus = getStudentAttendanceStatus(student.id);
+                  return (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell>{student.department}</TableCell>
+                      <TableCell>Year {student.year}</TableCell>
+                      <TableCell>
+                        {currentStatus ? (
+                          <span className={`capitalize font-medium ${
+                            currentStatus === 'present' ? 'text-green-600' :
+                            currentStatus === 'late' ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {currentStatus}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">Not marked</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {!currentStatus && (
+                          <div className="flex justify-end gap-2">
+                            <AttendanceMarkButton
+                              studentId={student.id}
+                              studentName={student.name}
+                              department={student.department}
+                              status="present"
+                              onSuccess={handleAttendanceMarked}
+                            />
+                            <AttendanceMarkButton
+                              studentId={student.id}
+                              studentName={student.name}
+                              department={student.department}
+                              status="late"
+                              onSuccess={handleAttendanceMarked}
+                            />
+                            <AttendanceMarkButton
+                              studentId={student.id}
+                              studentName={student.name}
+                              department={student.department}
+                              status="absent"
+                              onSuccess={handleAttendanceMarked}
+                            />
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+}
