@@ -89,9 +89,9 @@ function Chatbot() {
                                                 <span>Thinking...</span>
                                             </div>
                                         ) : (
-                                            <ReactMarkdown className="prose prose-sm max-w-none">
-                                                {message.text}
-                                            </ReactMarkdown>
+                                            <div className="prose prose-sm max-w-none">
+                                                <ReactMarkdown>{message.text}</ReactMarkdown>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
