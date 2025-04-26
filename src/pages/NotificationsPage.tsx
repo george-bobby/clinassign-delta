@@ -1,70 +1,137 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
 import Sidebar from '@/components/layout/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import { Navigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bell, Calendar, MessageSquare, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Bell, 
+  Calendar, 
+  MessageSquare, 
+  BookOpen, 
+  AlertTriangle, 
+  CheckCircle2 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
-// Mock notification data
-const mockNotifications = [
-  {
-    id: 1,
-    type: 'message',
-    title: 'New message from Dr. Smith',
-    description: 'Regarding your upcoming clinical rotation',
-    time: '10 minutes ago',
-    read: false,
-    icon: MessageSquare
-  },
-  {
-    id: 2,
-    type: 'schedule',
-    title: 'Schedule update',
-    description: 'Your rotation for next week has been updated',
-    time: '2 hours ago',
-    read: false,
-    icon: Calendar
-  },
-  {
-    id: 3,
-    type: 'assignment',
-    title: 'New case study assigned',
-    description: 'Pediatric care case study has been assigned to you',
-    time: '1 day ago',
-    read: true,
-    icon: BookOpen
-  },
-  {
-    id: 4,
-    type: 'alert',
-    title: 'Attendance warning',
-    description: 'You have missed 2 scheduled sessions',
-    time: '2 days ago',
-    read: true,
-    icon: AlertTriangle
-  },
-  {
-    id: 5,
-    type: 'success',
-    title: 'Case study reviewed',
-    description: 'Your recent case study was reviewed with good feedback',
-    time: '4 days ago',
-    read: true,
-    icon: CheckCircle2
-  }
-];
+interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'message' | 'schedule' | 'assignment' | 'alert' | 'success';
+  created_at: string;
+  read: boolean;
+}
 
 const NotificationsPage: React.FC = () => {
   const { user, loading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [notifications, setNotifications] = React.useState(mockNotifications);
-  
-  // Show loading state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setNotifications(data || []);
+      } catch (error: any) {
+        console.error('Error fetching notifications:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load notifications',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchNotifications();
+  }, [user, toast]);
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'message': return MessageSquare;
+      case 'schedule': return Calendar;
+      case 'assignment': return BookOpen;
+      case 'alert': return AlertTriangle;
+      case 'success': return CheckCircle2;
+      default: return Bell;
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true } 
+            : notification
+        )
+      );
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark notification as read',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+    } catch (error: any) {
+      console.error('Error marking all notifications as read:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark all notifications as read',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const clearAll = () => {
+    setNotifications([]);
+  };
+
+  // Show loading state if authentication is still loading
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -75,39 +142,7 @@ const NotificationsPage: React.FC = () => {
       </div>
     );
   }
-  
-  // Redirect if not logged in
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-  
-  const unreadCount = notifications.filter(n => !n.read).length;
-  
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-  };
-  
-  const markAsRead = (id: number) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-  };
-  
-  const clearAll = () => {
-    setNotifications([]);
-  };
-  
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'message': return 'bg-blue-100 text-blue-600';
-      case 'schedule': return 'bg-purple-100 text-purple-600';
-      case 'assignment': return 'bg-amber-100 text-amber-600';
-      case 'alert': return 'bg-red-100 text-red-600';
-      case 'success': return 'bg-green-100 text-green-600';
-      default: return 'bg-gray-100 text-gray-600';
-    }
-  };
-  
+
   return (
     <div className="min-h-screen bg-gray-50 w-full">
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
@@ -117,7 +152,10 @@ const NotificationsPage: React.FC = () => {
         
         <main className="flex-1 transition-all duration-300 ease-in-out md:ml-64">
           <div className="container mx-auto p-4 md:p-6 lg:p-8 animate-slide-in">
-            <DashboardHeader title="Notifications" description="Manage your notifications and alerts" />
+            <DashboardHeader 
+              title="Notifications" 
+              description="Manage your notifications and alerts" 
+            />
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -125,9 +163,9 @@ const NotificationsPage: React.FC = () => {
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="h-5 w-5 text-clinical-600" />
                     <span>Notifications</span>
-                    {unreadCount > 0 && (
+                    {notifications.filter(n => !n.read).length > 0 && (
                       <span className="ml-2 rounded-full bg-clinical-600 px-2 py-0.5 text-xs text-white">
-                        {unreadCount} new
+                        {notifications.filter(n => !n.read).length} new
                       </span>
                     )}
                   </CardTitle>
@@ -136,10 +174,20 @@ const NotificationsPage: React.FC = () => {
                   </CardDescription>
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={markAllAsRead}
+                    disabled={notifications.every(n => n.read)}
+                  >
                     Mark all as read
                   </Button>
-                  <Button variant="outline" size="sm" onClick={clearAll}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearAll}
+                    disabled={notifications.length === 0}
+                  >
                     Clear all
                   </Button>
                 </div>
@@ -153,34 +201,45 @@ const NotificationsPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    {notifications.map((notification) => (
-                      <div 
-                        key={notification.id} 
-                        className={`flex items-start p-3 rounded-lg transition-colors ${notification.read ? 'bg-white' : 'bg-blue-50'} hover:bg-gray-50`}
-                      >
-                        <div className={`p-2 rounded-full mr-3 ${getNotificationColor(notification.type)}`}>
-                          <notification.icon className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <p className="text-sm font-medium text-gray-900">{notification.title}</p>
-                            <span className="text-xs text-gray-500">{notification.time}</span>
+                    {notifications.map((notification) => {
+                      const NotificationIcon = getNotificationIcon(notification.type);
+                      return (
+                        <div 
+                          key={notification.id} 
+                          className={`flex items-start p-3 rounded-lg transition-colors ${
+                            notification.read ? 'bg-white' : 'bg-blue-50'
+                          } hover:bg-gray-50`}
+                        >
+                          <div className={`p-2 rounded-full mr-3`}>
+                            <NotificationIcon className="h-5 w-5" />
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">{notification.description}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <p className="text-sm font-medium text-gray-900">
+                                {notification.title}
+                              </p>
+                              <span className="text-xs text-gray-500">
+                                {new Date(notification.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {notification.message}
+                            </p>
+                          </div>
+                          {!notification.read && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="ml-2 h-8 w-8 p-0 rounded-full"
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <span className="sr-only">Mark as read</span>
+                              <div className="h-2 w-2 rounded-full bg-clinical-600"></div>
+                            </Button>
+                          )}
                         </div>
-                        {!notification.read && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="ml-2 h-8 w-8 p-0 rounded-full"
-                            onClick={() => markAsRead(notification.id)}
-                          >
-                            <span className="sr-only">Mark as read</span>
-                            <div className="h-2 w-2 rounded-full bg-clinical-600"></div>
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
